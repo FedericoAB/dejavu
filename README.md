@@ -1,86 +1,85 @@
-# Déjà Vu — el agente que mira cómo trabajás
+# Déjà Vu — reconoce la repetición y ofrece ayuda
 
-> No le preguntás nada. Te mira trabajar, reconoce que ya hiciste esto antes,
-> y a la tercera vez te interrumpe: **"Esto ya lo hiciste dos veces. ¿Lo hago yo?"**
+Prototipo para una persona que prepara traspasos de tareas en **Ambiguous AI**.
+Dos veces copia título y contexto a un documento; al abrir la siguiente tarea,
+Déjà Vu reconoce el patrón y ofrece preparar el traspaso sin escribir un prompt.
+El documento se revisa antes de guardarlo y se vuelve a leer desde Ambiguous.
 
-Déjà Vu vive dentro de [Ambiguous AI](https://www.ambiguous.ai/) —el workspace donde
-el equipo ya tiene su Mail, Chat, Docs, Sheets, Tasks, Calendar y CRM— y dentro del
-navegador. Observa el flujo real de trabajo, detecta la secuencia repetida,
-la compila en una **rutina ejecutable** y la corre de punta a punta con aprobación
-humana en los pasos sensibles.
+## Estado real
 
-El entorno no es decorado: el agente es un compañero más del workspace, con su
-propia identidad, su casilla de correo y sus tareas asignadas.
+Implementado: extensión Chrome MV3 con panel dentro de Ambiguous, API local,
+detector determinista, plantilla de traspaso, aprobación, rechazo, historial
+persistente y lectura del documento creado. El observador registra **solo acciones
+del panel de traspasos**, no los clics generales de Ambiguous ni otras aplicaciones.
+La receta es fija: no aprende rutinas arbitrarias ni usa un LLM.
 
-## Estado
+La [revisión contra los cuatro criterios](docs/revision-mvp.md) distingue evidencia
+comprobada de pendientes. El [guion de demo](docs/demo.md) muestra el alcance actual.
+Los documentos `plan-*` describen la visión ampliada, no funcionalidad disponible.
 
-| | |
-|---|---|
-| Etapa | Prototipo de hackathon (AI Thinkerers) |
-| Fecha de build | 2026-09-12 |
-| Demo | `docs/demo.md` |
-| Métricas | `docs/metricas.md` — el tablero vive en `/metrics` |
+## Instalación desde un clon limpio
 
-## Instalación rápida
+Requisitos: Node.js 22+, pnpm 9.15 y Chrome/Chromium para la extensión.
+Si no tenés pnpm, reemplazá `pnpm` por `npx --yes pnpm@9.15.0` en cada comando.
 
 ```bash
-pnpm install
-cp .env.example .env        # completar claves
-docker compose up -d db     # Postgres 16
-pnpm db:migrate
-pnpm dev                    # web :3000 · core :8080 · trigger dev
+pnpm install --frozen-lockfile
+pnpm run setup
+# Editar .env: AMBIGUOUS_API_KEY de tu workspace de demostración.
+pnpm verify
+pnpm dev
 ```
 
-Detalle en [docs/development.md](docs/development.md).
+`setup` conserva el .env existente y genera un token local aleatorio si falta.
+Solo se necesita la credencial **AMBIGUOUS_API_KEY**, con lectura de tareas y
+creación/lectura de documentos. No hacen falta claves de modelos, Docker ni Postgres.
+El core comprueba la identidad de Ambiguous al iniciar y escucha en `127.0.0.1:8080`.
 
-## Mapa del repositorio
+1. En `chrome://extensions`, activar modo desarrollador → **Cargar descomprimida** →
+   seleccionar `apps/observer/dist` (generado por `pnpm verify` o `pnpm build`).
+2. Abrir o recargar `https://app.ambiguous.ai/` y pulsar **Déjà Vu ↗**.
+3. Conectar con `CORE_INGEST_TOKEN` del .env. La clave de Ambiguous nunca entra en la extensión.
+4. Usar tres tareas cortas del workspace de demostración y seguir [la demo](docs/demo.md).
 
+## Comprobación
+
+```bash
+pnpm verify        # lint, tipos, tests, evaluación del detector y build de extensión
+pnpm verify:live   # ESCRIBE datos DEMO reales: hasta 3 tareas y 3 documentos privados
 ```
-apps/
-  web/        Next.js 15 + CopilotKit  → interrupción "¿lo hago yo?", chat, tablero
-  core/       API Node/TS (Express)    → ingesta, detección, compilación, ejecución
-  observer/   Extensión Chrome MV3     → captura semántica del navegador
-packages/
-  detector/        motor de detección de patrones (puro, testeado, sin red)
-  routine-schema/  DSL de rutinas + validación Zod (contrato compartido)
-  connectors/      Ambiguous · Exa · Auth0 · any-llm
-db/migrations/     SQL versionado
-docs/              visión, arquitectura, planes, ADRs, métricas
-```
 
-## Documentación
+El ensayo real usa HTTP y la API de Ambiguous; no reemplaza el ensayo humano de la
+extensión. Requiere un historial local vacío y conserva su evidencia en
+`.local/live-verification.json`. Si ya hay corridas, se detiene para conservarlas.
+No ejecutar al mismo tiempo que el core: el MVP usa un único escritor por archivo.
+No envía correos, mensajes ni asigna tareas. Los datos DEMO quedan en el workspace.
 
-| Documento | Responde |
+## Límites y controles
+
+- Una persona, un workspace y un proceso. No publicar el core en Internet.
+- Aprobación del contenido preparado antes de cada escritura; rechazo no escribe.
+- Una corrida guarda como máximo una vez. Si la red se corta al escribir, no reenvía
+  automáticamente: muestra el estado incierto para revisar Docs.
+- Un documento creado solo figura como verificado después de un GET que comprueba
+  ID, título y referencia a la tarea. La lectura se puede repetir tras recargar.
+- Pausar la observación borra la secuencia local; silenciar una oferta dura 24 h.
+- Solo los traspasos manuales alimentan la detección. Perfil específico: 3 pasos,
+  2 repeticiones, mediana ≥5 s, score ≥0,35; no cambia los umbrales generales.
+- Los eventos guardan forma y referencia local. El historial **sí contiene los datos
+  de las tareas y borradores** necesarios para revisar la ejecución; se guarda en
+  `.local/` con permisos privados, fuera de git. No es almacenamiento cifrado.
+
+## Mapa
+
+| Directorio | Estado |
 |---|---|
-| [docs/vision.md](docs/vision.md) | Qué construimos y por qué gana |
-| [docs/arquitectura.md](docs/arquitectura.md) | Componentes, flujos, límites |
-| [docs/plan-deteccion.md](docs/plan-deteccion.md) | **El corazón**: cómo se detecta el patrón |
-| [docs/plan-backend.md](docs/plan-backend.md) | Capas, endpoints, ejecución |
-| [docs/plan-frontend.md](docs/plan-frontend.md) | CopilotKit, estados, interrupción |
-| [docs/plan-datos.md](docs/plan-datos.md) | Esquema, migraciones, retención |
-| [docs/plan-integraciones.md](docs/plan-integraciones.md) | Cómo se enchufa cada sponsor |
-| [docs/metricas.md](docs/metricas.md) | Sistema de métricas y scorecard |
-| [docs/plan-dia.md](docs/plan-dia.md) | Cronograma por horas y cortes de alcance |
-| [docs/runbook.md](docs/runbook.md) | Qué hacer cuando falla en la demo |
-| [docs/decisions/](docs/decisions/) | ADRs |
-| [MEMORY.md](MEMORY.md) | Memoria del agente que construyó esto |
+| `apps/core` | API Express, conector Ambiguous, workflow y persistencia local |
+| `apps/observer` | Extensión MV3 y panel de trabajo instrumentado |
+| `packages/detector` | Motor puro y evaluación sintética |
+| `packages/routine-schema` | Contrato de rutinas de la visión ampliada; todavía no usado por la receta fija |
+| `apps/web`, `packages/connectors`, `db` | Planes pendientes, sin runtime en este MVP |
 
-## Convenciones
-
-Este proyecto sigue el Engineering Handbook personal (vault, fuera de este repo).
-
-### Excepciones registradas
-
-| Excepción | Motivo |
-|---|---|
-| Monorepo en vez de un repo por proyecto | La submission del hackathon exige **un** repositorio público. |
-| Nombre `dejavu` en vez de `ambito-cliente-producto` | Es el nombre de producto de la submission; se lee en el video y en el post. |
-| Migraciones generadas por drizzle-kit (`NNNN_nombre.sql`) | Ver [ADR-0002](docs/decisions/ADR-0002-persistencia.md). El prefijo `YYYYMMDDHHMM_` del handbook no lo produce la herramienta. |
-| Comentarios y docs en español, código en inglés | Es la convención del handbook, se mantiene. |
-
-## Privacidad — no negociable
-
-El observador **nunca** captura contraseñas, campos `type=password`, contenido de
-inputs marcados `data-dejavu-ignore`, ni el texto completo de la página. Captura
-*forma* (qué tipo de acción, sobre qué tipo de elemento, en qué dominio), y los
-valores se guardan como parámetros redactados. Ver [docs/plan-datos.md](docs/plan-datos.md#privacidad).
+[ADR-0007](docs/decisions/ADR-0007-mvp-vertical.md) registra el recorte respecto de
+Postgres, Trigger.dev, CopilotKit y el compilador LLM. No se atribuye uso de esas
+herramientas en la submission actual. El código usa inglés y la documentación,
+español. Las notas personales y credenciales nunca forman parte del repo público.

@@ -3,13 +3,15 @@
   "private": true,
   "packageManager": "pnpm@9.15.0",
   "scripts": {
-    "dev": "pnpm -r --parallel dev",
+    "setup": "node scripts/setup.mjs",
+    "dev": "pnpm --filter @dejavu/core dev",
     "build": "pnpm -r build",
     "test": "pnpm -r test",
-    "lint": "pnpm -r lint",
+    "lint": "eslint .",
     "typecheck": "pnpm -r typecheck",
     "eval:detector": "pnpm --filter @dejavu/detector eval",
-    "db:migrate": "pnpm --filter @dejavu/core db:migrate",
-    "seed:demo": "pnpm --filter @dejavu/core seed:demo"
-  }
+    "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm eval:detector && pnpm build",
+    "verify:live": "pnpm --filter @dejavu/core exec tsx test/live.ts --write-demo"
+  },
+  "devDependencies": { "eslint": "^9.0.0", "@eslint/js": "^9.0.0", "typescript-eslint": "^8.0.0", "globals": "^16.0.0", "typescript": "^5.7.2" }
 }

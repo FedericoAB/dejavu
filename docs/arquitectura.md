@@ -3,6 +3,8 @@ tipo: plan
 ultima_revision: 2026-09-12
 ---
 
+> **Alcance:** este documento describe la visión ampliada. El MVP implementado y sus límites están en [revision-mvp.md](revision-mvp.md) y [ADR-0007](decisions/ADR-0007-mvp-vertical.md). No tomar los componentes previstos como integraciones ya disponibles.
+
 # Arquitectura
 
 ## Vista de conjunto

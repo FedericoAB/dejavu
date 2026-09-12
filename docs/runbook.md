@@ -1,54 +1,18 @@
----
-tipo: plan
-ultima_revision: 2026-09-12
----
+# Runbook del MVP
 
-# Runbook — qué hacer cuando falla (y va a fallar)
+| Síntoma | Acción |
+|---|---|
+| El core no inicia | Revisar Node 22+, `.env`, credencial Ambiguous y token local ≥24 caracteres. El inicio comprueba identidad y acceso al workspace. |
+| No conecta el panel | Iniciar `pnpm dev`, revisar puerto 8080, pegar `CORE_INGEST_TOKEN`, recargar extensión y Ambiguous. |
+| Lista vacía | Crear tareas cortas de demo en el workspace conectado; no se cargan datos ficticios automáticamente. |
+| No aparece la tercera oferta | Confirmar dos traspasos manuales **verificados**, mediana ≥5 s, observación activa y oferta no silenciada. El perfil solo reconoce la receta de traspasos. |
+| Título/contexto no coinciden | Copiar exactamente los datos de la tarea que muestra el panel. La receta fija no reconoce otras transformaciones. |
+| `created` | El POST devolvió ID pero falló la lectura. “Volver a leer” verifica sin crear otro documento. |
+| `uncertain` | Revisar Docs buscando el título. No repetir automáticamente la creación; podría haber terminado aunque se cortara la respuesta. |
+| `writing` tras perder conexión | Actualizar el estado. Si se reinicia el core, se conserva como incierto para evitar duplicados. |
+| Error 401/403 del proveedor | Revisar la credencial y permisos del workspace; no cambiar de workspace para ocultar el fallo. |
+| Hay un historial de ensayo | Terminar/cancelar la corrida, pausar y reanudar para limpiar solo la secuencia de observación. El historial permanece. |
 
-Orden de diagnóstico, de lo más probable a lo menos.
-
-## La oferta no aparece
-
-1. ¿Están entrando eventos? `select count(*), max(occurred_at) from events;`
-   - No → la extensión. Revisar la consola del *service worker* en `chrome://extensions`,
-     y que `CORE_INGEST_TOKEN` coincida. ¿El observador está en pausa?
-2. ¿Se están normalizando distinto las dos vueltas?
-   `select step_key, count(*) from events group by 1 order by 2 desc;`
-   - Si cada vuelta genera `step_key` distintos → el `urlPattern` no está sustituyendo
-     los IDs. Es **el bug más común**. Revisar `normalizer.ts`.
-3. ¿El patrón está en cooldown? `select status, dismissed_count, last_offered_at from patterns;`
-   - `dismissed` o `muted` → `update patterns set status='detected', dismissed_count=0;`
-4. ¿El score quedó bajo el umbral? Log `debug` de `detection.ts` imprime el desglose.
-5. Último recurso, en vivo: `pnpm seed:demo --pattern cobranzas --repeat 2`.
-
-## Un paso falla
-
-- `401/403` de Ambiguous → clave vencida o sin permiso sobre ese recurso. Reemitir.
-- `429` → rate limit. Bajar la frecuencia del watcher a 60 s y no reensayar con envío real.
-- `unsupported` → el paso no tiene API. Es esperado: la UI lo muestra como manual.
-- Timeout → reintento por paso, hasta 3. Si los tres fallan, la corrida para y avisa;
-  no sigue de largo pasos que dependen del que falló.
-
-## La aprobación nunca llega
-
-1. ¿Se creó el waitpoint? Consola de Trigger.dev, la corrida en `waiting_approval`.
-2. ¿Auth0 mandó el push? Logs del tenant.
-3. Plan B inmediato: `POST /v1/runs/:id/approve` desde la UI (el botón existe siempre,
-   aunque esté escondido cuando CIBA está activo).
-4. Timeout del waitpoint: 10 min. Después la corrida queda `timeout`, no colgada.
-
-## El LLM no responde
-
-`LLM_PRIMARY` → `LLM_FALLBACK` en `.env`, reiniciar el core. Si ninguno anda: la rutina
-se ofrece con nombre genérico y pasos mapeados por plantilla. La detección sigue andando.
-
-## La demo se cae frente al jurado
-
-En este orden, sin dudar:
-1. Se corta la demo en vivo a los 20 segundos de pelear. No más.
-2. Se muestra el video grabado.
-3. Se corre `pnpm test --filter detector` en la terminal: 7 tests verdes, con el número
-   de precisión del banco.
-4. Se abre `/metrics` con los datos de las corridas anteriores.
-
-Practicar esta transición una vez. Es lo que separa "se les cayó" de "lo tenían previsto".
+No afirmar éxito a partir de un clic de aprobación. Mostrar el resultado del GET y
+el documento en Ambiguous. Los tests offline prueban lógica, no disponibilidad del
+servicio ni instalación de la extensión.

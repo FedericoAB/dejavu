@@ -18,3 +18,4 @@ coverage/
 /knowledge/
 *.private.md
 package-lock.json
+.local/

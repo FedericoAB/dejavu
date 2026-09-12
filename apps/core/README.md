@@ -1,21 +1,12 @@
-# apps/core
+# Core del MVP
 
-API y cerebro. Node 22 + TypeScript + Express. Plan completo en
-[../../docs/plan-backend.md](../../docs/plan-backend.md).
+API local Express, bearer token, validación Zod, una receta de traspasos y conector
+REST de Ambiguous. `src/controllers` traduce HTTP; `services` implementa el dominio;
+`repositories` conserva el estado; `connectors` conoce el proveedor.
 
-## Por hacer (en orden)
+Arranque desde la raíz: `pnpm dev`. Configuración y límites en el README raíz.
+Tests: `pnpm --filter @dejavu/core test`. No hay migraciones ni Trigger en este corte.
 
-- [ ] `src/models/` — tipos de dominio
-- [ ] `src/repositories/` — Drizzle, sin `select *`
-- [ ] `src/services/normalizer.ts` — envuelve `@dejavu/detector`
-- [ ] `src/services/detection.ts` — detector + cooldowns + creación de la oferta
-- [ ] `src/routes/ingest.ts` + `controllers/ingest.controller.ts` — el camino caliente
-- [ ] `src/services/compiler.ts` — candidato → `Routine` (único punto con LLM)
-- [ ] `src/trigger/run-routine.ts` — la corrida, con `wait.forToken`
-- [ ] `src/services/watcher.ts` — poll de Ambiguous → eventos
-- [ ] `src/services/metrics.ts` + `routes/metrics.ts`
-- [ ] middleware de errores (un solo formato), pino con `requestId`, helmet, rate limit
-
-## Regla que no se rompe
-
-Ningún `req`, `res` ni código HTTP por debajo de `controllers/`.
+Rutas: `GET /healthz`, `GET /v1/workspace`, `GET /v1/tasks`, `GET /v1/state`,
+`POST /v1/runs`, `GET /v1/runs/:id`, `POST /v1/runs/:id/{prepare,dismiss,reject,approve,verify}`,
+`POST /v1/observation`. Listas paginadas; errores con `code,message,details,requestId`.

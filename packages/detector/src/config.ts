@@ -25,4 +25,6 @@ export const DETECTOR_CONFIG = {
   },
 } as const
 
-export type DetectorConfig = typeof DETECTOR_CONFIG
+// Permite perfiles por rutina sin convertir los numeros en tipos literales.
+type NumericConfig<T> = { [K in keyof T]: T[K] extends number ? number : NumericConfig<T[K]> }
+export type DetectorConfig = NumericConfig<typeof DETECTOR_CONFIG>

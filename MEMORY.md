@@ -78,6 +78,8 @@ Si alguien propone "mandemos la traza al modelo y preguntemos", la respuesta est
 
 ## Estado al cierre de esta sesión (2026-09-12)
 
-Hecho: estructura del repo, los nueve documentos de plan, seis ADRs, y
-`packages/detector` con su implementación y sus tests.
-Falta: todo lo que dice `docs/plan-dia.md` a partir del paso 3.
+Estado actualizado: detector y contrato; MVP de traspasos en `apps/core` y
+extensión en `apps/observer`. Ver `docs/revision-mvp.md` para evidencia y pendientes.
+ADR-0007 recorta a una receta fija, API Ambiguous real y persistencia local; no se
+implementaron los sponsors ni el ejecutor general de los planes. Falta el ensayo
+humano de la extensión instalada y los entregables públicos del evento.

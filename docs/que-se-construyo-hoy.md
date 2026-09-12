@@ -1,42 +1,45 @@
----
-tipo: plan
-ultima_revision: 2026-09-12
----
+# Qué se construyó — registro revisado 2026-09-12
 
-# Qué se construyó hoy
+Este archivo distingue código de planes. El equipo debe confirmar que cada parte
+fue creada durante el período oficial de su sede; git no demuestra por sí solo la
+elegibilidad. No se inventan horarios para el trabajo de esta revisión.
 
-Requisito de elegibilidad: el proyecto y su funcionalidad principal tienen que
-haberse construido durante el evento, y hay que poder explicar qué parte es de hoy.
-Este archivo se actualiza **cada hora**. Es más fácil escribirlo al pasar que
-reconstruirlo a las 19:00.
+## Existente al iniciar la revisión
 
-## Construido hoy, desde cero
+El commit `484ea12` contiene el detector, el contrato Zod de rutinas y documentos de
+arquitectura/plan. Las aplicaciones core/web/observer tenían solo README.
 
-| Hora | Qué | Dónde |
-|---|---|---|
-| 09:40 | Investigación de las APIs de los sponsors y decisión de arquitectura | `docs/plan-integraciones.md`, 6 ADRs |
-| 10:20 | **Motor de detección de patrones completo**: normalización semántica, minería de subsecuencias con hash rodante, puntaje, extracción de parámetros y enlaces de datos | `packages/detector/src/` |
-| 10:26 | 15 tests unitarios en verde | `packages/detector/test/detector.test.ts` |
-| 10:30 | Banco etiquetado de 20 trazas, F1 = 1,00 | `packages/detector/test/eval.ts` |
-| 10:35 | Los nueve documentos de plan | `docs/` |
+- Detector: normalización, minería de subsecuencias contiguas, score y parámetros.
+- 15 tests del detector y banco de 20 trazas sintéticas.
+- `packages/routine-schema`: contrato para el futuro ejecutor general.
+- Documentos y seis ADR; describían trabajo futuro, no integraciones realizadas.
 
-## Bloques preexistentes usados (permitido, y hay que poder declararlo)
+## Implementado en esta revisión
 
-| Bloque | Qué aporta | Qué escribimos nosotros |
-|---|---|---|
-| CopilotKit | componentes de chat, transporte AG-UI, hooks de HITL | la tarjeta de interrupción, las tools, el contexto del agente |
-| Trigger.dev | cola, reintentos, waitpoints | la tarea `run-routine` y los pasos |
-| SDK de Exa | cliente HTTP | los dos tipos de paso y el manejo de citas |
-| SDK de Auth0 | login y CIBA | el puente entre CIBA y el waitpoint |
-| any-llm (Mozilla.ai) | abstracción de proveedor | el compilador de rutinas y su prompt |
-| Next.js, Express, Drizzle, Zod, vitest | andamiaje | todo el dominio |
+| Parte | Ubicación |
+|---|---|
+| Receta de tarea a documento, detección tras dos vueltas, aprobación/rechazo | `apps/core/src/services/workflow.ts` |
+| API HTTP con token, validación, listas paginadas y error uniforme | `apps/core/src/controllers/api.ts` |
+| Cliente real Ambiguous: identidad, tareas, documentos y lectura posterior | `apps/core/src/connectors/ambiguous.ts` |
+| Persistencia local y protección frente a reenvío de escritura incierta | `apps/core/src/repositories/state.ts` |
+| Extensión MV3 y panel instrumentado con flujo manual y asistido | `apps/observer/` |
+| Tests del workflow y API; ensayo separado que usa Ambiguous real | `apps/core/test/` |
+| Lockfile, lint, setup, verify, quickstart, revisión y guion del MVP | Raíz, `scripts/`, `docs/` |
 
-**Nada de este proyecto existía antes de hoy.** No hay código reutilizado de un
-proyecto propio anterior: el historial de git arranca hoy y se puede auditar commit
-por commit.
+## Bloques preexistentes usados
 
-## La frase para el jurado
+Node, TypeScript, Express, Zod, Vitest, pnpm, esbuild y la API de Ambiguous aportan
+infraestructura. La lógica de detección, el flujo de traspasos y su panel pertenecen
+a este proyecto. El starter kit se consultó como guía de criterios y entregables;
+no se copiaron sus aplicaciones.
 
-> "Lo que construimos hoy es el motor de detección y el sistema que lo rodea. Las
-> librerías de los sponsors nos dieron el transporte, la cola y la identidad; el
-> algoritmo que decide *cuándo* el agente puede ayudar es nuestro, y está testeado."
+**No implementados:** CopilotKit/AG-UI, Exa, Trigger.dev, Auth0/CIBA, any-llm,
+compilador LLM, Postgres y observador general de navegador. Su presencia en los
+planes no debe describirse como uso de los sponsors.
+
+## Validación de esta revisión
+
+`pnpm verify` pasa: 29 tests (16 del detector y 13 del core/conector), lint, tipos,
+evaluación de 20 trazas y build. Ensayo HTTP con Ambiguous real: tres tareas DEMO,
+tres documentos creados y releídos, rechazo y tercera oferta. Sigue pendiente la
+prueba humana de la extensión instalada. Ver `docs/revision-mvp.md`.

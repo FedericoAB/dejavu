@@ -44,10 +44,9 @@ function toOccurrence(events: NormalizedEvent[], start: number, len: number): Oc
 /**
  * Encuentra las subsecuencias contiguas repetidas de la traza.
  *
- * Barrido O(|S| · maxLen) con hash rodante por ventana; la igualdad se verifica
- * comparando las claves, asi que una colision de hash no genera falso positivo.
- * Con miles de eventos corre en microsegundos: por eso se puede evaluar en cada
- * evento entrante y por eso podemos interrumpir en vivo.
+ * Agrupa ventanas por la secuencia exacta de claves. Recalcula cada firma:
+ * O(|S| · maxLen²), no es un hash rodante. El limite de longitud y la cola acotada
+ * mantienen pequeno el trabajo; no afirmamos una latencia sin medirla.
  */
 export function minePatterns(
   events: NormalizedEvent[],
@@ -61,7 +60,9 @@ export function minePatterns(
     const seen = new Map<string, number[]>()
     for (let start = 0; start + len <= keys.length; start++) {
       const signature = keys.slice(start, start + len).join('|')
-      const bucket = `${len}:${fnv1a(signature)}:${signature.length}`
+      // El hash se conserva solo como identificador del candidato, nunca como
+      // prueba de igualdad de dos ventanas.
+      const bucket = `${len}:${signature}`
       const list = seen.get(bucket)
       if (list) list.push(start)
       else seen.set(bucket, [start])

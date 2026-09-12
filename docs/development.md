@@ -1,72 +1,24 @@
----
-tipo: plan
-ultima_revision: 2026-09-12
----
+# Desarrollo del MVP
 
-# Entorno local
-
-## Requisitos
-Node 22, pnpm 9, Docker (para Postgres), Chrome (para la extensión).
-
-## Arranque
+El quickstart vigente está en [README](../README.md). Ejecutar desde la raíz:
 
 ```bash
-pnpm install
-cp .env.example .env          # completar claves — ver abajo
-docker compose up -d db
-pnpm db:migrate
-pnpm dev                      # web :3000 · core :8080 · trigger dev
+pnpm install --frozen-lockfile
+pnpm run setup
+# Completar AMBIGUOUS_API_KEY en .env
+pnpm verify
+pnpm dev
 ```
 
-Cargar la extensión: `chrome://extensions` → Modo desarrollador → *Cargar
-descomprimida* → `apps/observer/dist` (antes: `pnpm --filter observer build`).
+Core en `127.0.0.1:8080`. La extensión se compila en `apps/observer/dist` y se carga
+manualmente en Chrome/Chromium. Después de editar: `pnpm build`, recargar la
+extensión y la pestaña de Ambiguous. No hay proceso Next.js, Postgres ni Trigger.
 
-## Claves, en orden de urgencia
+Los endpoints usan bearer `CORE_INGEST_TOKEN`; no hay CORS abierto a sitios web.
+El background de la extensión hace las llamadas mediante `host_permissions`.
+El único proceso escritor guarda estado privado por workspace e identidad en
+`.local/state-*.json`. No iniciar dos cores ni ejecutar `verify:live` junto al core.
 
-| Variable | De dónde sale | Sin ella |
-|---|---|---|
-| `AMBIGUOUS_API_KEY` | consola de agentes de Ambiguous | no hay ejecución |
-| `DATABASE_URL` | docker compose | no arranca nada |
-| `CORE_INGEST_TOKEN` | inventada, compartida con la extensión | no entra ningún evento |
-| `ANTHROPIC_API_KEY` | consola de Anthropic | rutinas con nombre genérico |
-| `EXA_API_KEY` | dashboard de Exa | pasos de búsqueda deshabilitados |
-| `TRIGGER_SECRET_KEY` | proyecto de Trigger.dev | ejecución en proceso (modo degradado) |
-| `AUTH0_*` | tenant de Auth0 | aprobación con botón en la UI |
-
-Los secretos viven en `.env` local y en las variables del proveedor de deploy.
-**Nunca** en el repo, nunca en el frontend, nunca en un log.
-
-## Comandos
-
-| Comando | Qué hace |
-|---|---|
-| `pnpm dev` | todo en paralelo |
-| `pnpm test` | vitest en todos los paquetes |
-| `pnpm test --filter detector` | solo el corazón, sin red |
-| `pnpm eval:detector` | precisión/recall del detector sobre el banco etiquetado |
-| `pnpm eval:compiler` | calidad del compilador (necesita LLM) |
-| `pnpm db:migrate` · `pnpm db:studio` | migraciones y explorador |
-| `pnpm seed:demo` | carga una traza de demo para probar sin usar el navegador |
-| `pnpm lint` · `pnpm typecheck` | antes de cada commit |
-
-## Probar la API de Ambiguous a mano
-
-Lo primero del día, antes de escribir el conector:
-
-```bash
-source .env
-curl -s -H "Authorization: Bearer $AMBIGUOUS_API_KEY" "$AMBIGUOUS_API_BASE/mail/inbox" | jq .
-curl -s -H "Authorization: Bearer $AMBIGUOUS_API_BASE/tasks" | jq .
-```
-
-Si un endpoint no existe o responde distinto a lo documentado, se anota en
-`docs/integraciones-observado.md` y el paso se marca `unsupported`. No se adivina.
-
-## Simular una traza sin navegador
-
-```bash
-pnpm seed:demo --pattern cobranzas --repeat 2
-# → debería aparecer la oferta en http://localhost:3000
-```
-
-Es el atajo que permite ensayar el guion del video sin repetir el flujo a mano.
+`pnpm verify:live` crea datos DEMO reales; se detiene si ya existe historial.
+Conservar `.local/live-verification.json` como evidencia privada; no subirlo ni
+mostrarlo sin revisar sus identificadores y contenido. Ver [demo](demo.md).

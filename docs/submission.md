@@ -1,72 +1,49 @@
----
-tipo: plan
-ultima_revision: 2026-09-12
----
+# Submission — borrador del MVP actual
 
-# Submission
+## Título y descripción
 
-## Título
+**Déjà Vu — reconoce la repetición y ofrece ayuda**
 
-**Déjà Vu — el agente que mira cómo trabajás**
+Déjà Vu ayuda a quien prepara traspasos de tareas dentro de Ambiguous AI. El usuario
+copia título y contexto desde dos tareas a sus documentos de traspaso. Al abrir la
+siguiente, el detector reconoce la secuencia y ofrece preparar los datos sin escribir
+un prompt. El usuario revisa el documento antes de guardarlo y puede rechazarlo.
+El sistema verifica el resultado leyéndolo nuevamente desde Ambiguous.
 
-## Descripción escrita (borrador para el portal)
+El contexto aporta las tareas reales y sus datos; el resultado queda en el mismo
+workspace. Este MVP observa las acciones del panel de una extensión. No observa
+cualquier interacción del navegador ni aprende rutinas arbitrarias. Usa una plantilla
+fija y un detector determinista; no utiliza un modelo de lenguaje en este corte.
 
-> Los agentes de IA esperan que les digas qué hacer. Describir un trabajo repetitivo
-> cuesta más que hacerlo, así que nadie lo automatiza y todos lo siguen haciendo a mano.
+**Tecnología efectivamente usada:** Ambiguous AI REST, Chrome MV3, Node/Express,
+TypeScript, Zod, pnpm y Vitest. CopilotKit, Exa, Trigger.dev, Auth0 y any-llm están en
+el plan ampliado, no en la implementación que se presenta aquí.
+
+## Evidencia
+
+Ver [revisión del MVP](revision-mvp.md), [demo](demo.md) y
+[registro de construcción](que-se-construyo-hoy.md). La evaluación del detector usa
+20 trazas sintéticas; no extrapolar su F1 al trabajo real. El ensayo HTTP del proveedor
+no reemplaza el ensayo humano de la extensión.
+
+## Entrega pendiente
+
+- [ ] Confirmar ciudad, portal, plazo y período oficial del evento.
+- [ ] Confirmar con el equipo qué fue construido durante el período elegible.
+- [ ] Ensayar la extensión instalada y mostrar el documento real.
+- [ ] Repositorio público y quickstart comprobado desde clon limpio.
+- [ ] Video público de ≤2 minutos.
+- [ ] Descripción en el portal.
+- [ ] Post público con los partners requeridos por el organizador.
+
+## Post preparado para revisión humana
+
+> Construimos Déjà Vu: un asistente que reconoce cuándo repetimos un traspaso de
+> tareas en Ambiguous y ofrece preparar el siguiente. Sin prompts, con revisión
+> antes de guardar y un documento verificable en el workspace.
 >
-> Déjà Vu invierte la relación: vive dentro de Ambiguous AI —el workspace donde el
-> equipo ya tiene su Mail, Chat, Docs, Sheets, Tasks y CRM— y observa el trabajo real.
-> Cuando reconoce que una secuencia ya se hizo dos veces, interrumpe una sola vez:
-> *"Hiciste esto 2 veces. Son 6 pasos y ~2 minutos cada vez. ¿Lo hago yo?"*. Un clic y
-> la ejecuta de punta a punta, pidiendo aprobación humana antes de cualquier paso
-> irreversible.
->
-> El usuario nunca escribe un prompt. Esa es la idea entera.
->
-> La detección **no** es un LLM: es un algoritmo determinista (normalización semántica
-> de cada paso + minería de subsecuencias repetidas con hash rodante + puntaje con
-> pesos explícitos) que corre en microsegundos sobre cada evento entrante, y por eso
-> puede interrumpir en vivo. Tiene un banco etiquetado de 20 trazas con F1 = 1,00 que
-> se corre con un comando. El modelo entra después, solo para nombrar la rutina,
-> inferir qué varía entre vueltas y compilar el plan ejecutable.
->
-> El entorno es esencial dos veces: es donde el trabajo ocurre (lo que nos da qué
-> observar) y es donde el agente tiene manos (lo que nos da cómo ejecutar). Como en
-> Ambiguous el agente es un miembro del equipo con identidad propia, el reporte llega
-> desde su casilla y el equipo le puede contestar.
->
-> **Stack:** Ambiguous AI (entorno, observación y ejecución) · CopilotKit + AG-UI
-> (interrupción, UI generativa, human-in-the-loop) · Exa (el paso "buscá el dato
-> afuera", con citas) · Trigger.dev (corridas durables y el waitpoint de aprobación) ·
-> Auth0 for AI Agents (identidad del agente y aprobación asincrónica por CIBA) ·
-> Mozilla.ai any-llm (proveedor de modelo intercambiable) · Next.js, Node/TS, Postgres.
+> Prototipo del hackathon Agents, Everywhere. [Enlace al repo] · [Enlace al video]
+> [Etiquetas de partners verificadas en el portal local]
 
-## Post en redes (borrador)
-
-> Construimos un agente que no espera órdenes.
->
-> Hacés un trabajo repetitivo dos veces. A la tercera aparece: "Hiciste esto 2 veces.
-> ¿Lo hago yo?" Un clic y lo ejecuta entero — leyendo tus planillas, buscando el dato
-> afuera, redactando el correo y pidiéndote permiso antes de enviarlo.
->
-> Cero prompts. El agente reconoce cuándo puede ayudar.
->
-> Déjà Vu, hecho hoy en @AIThinkerers con @ambiguous_ai como entorno, @CopilotKit
-> para la interrupción, @ExaAILabs para buscar, @triggerdotdev para ejecutar,
-> @auth0 para el sí del humano y @MozillaAI para no depender de un solo modelo.
->
-> 🔗 [repo] · 🎥 [video]
-
-*(Verificar los handles reales antes de publicar. Etiquetar a los partners del evento
-es requisito de la submission, no un detalle.)*
-
-## Checklist de envío
-
-- [ ] Repo **público** en GitHub y pusheado
-- [ ] README con instalación que funcione en una máquina limpia
-- [ ] Video de **2:00** máximo, subido
-- [ ] Descripción pegada en el portal
-- [ ] Post publicado, con los partners etiquetados
-- [ ] `docs/que-se-construyo-hoy.md` al día (elegibilidad: hay que poder explicar qué
-      se construyó durante el evento)
-- [ ] `pnpm test` y `pnpm eval:detector` en verde en la última commit
+No se publicó ni se envió este borrador. No atribuir uso técnico a un sponsor por
+etiquetarlo como partner del evento.

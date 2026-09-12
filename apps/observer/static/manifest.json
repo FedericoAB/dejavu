@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "Déjà Vu — traspasos en Ambiguous",
+  "version": "0.1.0",
+  "description": "Reconoce la repetición en el panel de traspasos y ofrece preparar el siguiente documento.",
+  "permissions": ["storage"],
+  "host_permissions": ["http://127.0.0.1/*"],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [{ "matches": ["https://app.ambiguous.ai/*"], "js": ["content.js"] }],
+  "action": { "default_popup": "panel.html" },
+  "web_accessible_resources": [{ "resources": ["panel.html", "panel.js", "panel.css"], "matches": ["https://app.ambiguous.ai/*"] }]
+}

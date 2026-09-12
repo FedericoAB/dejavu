@@ -1,21 +1,16 @@
-# apps/observer
+# Extensión Chrome MV3 del MVP
 
-Extensión de Chrome (MV3). Captura la **forma** de lo que hacés, nunca el contenido.
+`pnpm build` genera `dist`; cargar esa carpeta como extensión descomprimida en
+Chrome/Chromium. Abrir Ambiguous y pulsar **Déjà Vu ↗**. También hay un popup desde
+el icono de extensión. Configurar el token local del core, nunca la clave Ambiguous.
 
-## Por hacer
+El panel lee tareas reales y emite acciones semánticas al usar su flujo de traspasos.
+No es un observador del DOM completo ni registra contraseñas, portapapeles u otras
+aplicaciones. La página anfitriona no recibe la clave del proveedor ni el token local.
 
-- [ ] `manifest.json` — permisos mínimos: `activeTab`, `storage`. Nada de `<all_urls>`
-      si se puede evitar.
-- [ ] `content-script.ts` — listeners de `click`, `copy`, `paste`, `submit`,
-      `beforeunload`; `urlPattern` con los IDs ya sustituidos **antes** de salir
-- [ ] `redact.ts` — la lista negra dura (ver `docs/plan-datos.md#privacidad`)
-- [ ] `service-worker.ts` — cola local, lote cada 3 s, reintento con espera
-- [ ] `popup/` — botón de pausa visible y contador de eventos de la sesión
+Permisos: almacenamiento local y HTTP a 127.0.0.1. El content script corre solo en
+`https://app.ambiguous.ai/*`. El background acepta solicitudes únicamente del panel
+propio y de una lista de rutas. El core escucha exclusivamente en loopback.
 
-## Lo que NUNCA se captura
-
-`input[type=password]`, elementos con `data-dejavu-ignore`, campos cuyo label matchee
-`/contrase|password|cvv|token|tarjeta|cbu|ruc|cedula|documento/i`, el DOM, capturas de
-pantalla, el texto de la página, ni el contenido del portapapeles.
-
-Del `copy` se guarda largo, tipo inferido y hash. Nada más.
+PENDIENTE: ensayo humano en Chromium instalado. La compilación y los tests del core
+no equivalen a verificar la entrega real del content script en el navegador.
