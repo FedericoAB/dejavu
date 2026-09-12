@@ -18,15 +18,25 @@ export function Overview({ runId }: { runId?: string }) {
   const [busy, setBusy] = useState(false), [error, setError] = useState('')
   const [opening, setOpening] = useState(false)
   const pending = useRef<{ taskId: string; id: string } | undefined>(undefined), lock = useRef(false)
-  const active = runs.data?.data.find(run => ['opened', 'waiting_approval', 'writing'].includes(run.status))
+  // No abrir con una lista vieja: después de rechazar una corrida, las tareas
+  // pueden llegar antes que la actualización de runs y dejar un bloqueo fantasma.
+  const active = runs.loading ? undefined : runs.data?.data.find(run => ['opened', 'waiting_approval', 'writing'].includes(run.status))
   // Montar el editor una sola vez, después de navegar, conserva lo que se escribe.
   const selected = runId ?? (opening ? undefined : active?.id)
   const selectedTaskId = runs.data?.data.find(run => run.id === selected)?.task.id
   async function open(task: Task) {
     if (lock.current) return
-    if (active) { if (selected !== active.id) router.push(`/runs/${active.id}`); return }
     lock.current = true; setBusy(true); setOpening(true); setError('')
     try {
+      if (active) {
+        // Confirmar el estado evita que una respuesta atrasada del listado
+        // bloquee una tarea después de que la corrida ya fue rechazada.
+        const current = await request<Run>(token, `/runs/${active.id}`)
+        if (['opened', 'waiting_approval', 'writing'].includes(current.status)) {
+          router.push(`/runs/${current.id}`)
+          return
+        }
+      }
       if (pending.current?.taskId !== task.id) pending.current = { taskId: task.id, id: crypto.randomUUID() }
       const run = await request<Run>(token, '/runs', pending.current)
       pending.current = undefined; refresh(); router.push(`/runs/${run.id}`)
@@ -42,8 +52,8 @@ export function Overview({ runId }: { runId?: string }) {
   }
   return <><Heading title="Traspasos" action={<Resource resource={metrics}>{data => <div className={styles.toolbar}><Badge tone={data.paused ? 'amber' : 'green'}>{data.paused ? 'Pausado' : 'Observando'}</Badge><Button secondary onClick={() => void pause()} disabled={busy || !!active}>{data.paused ? 'Reanudar' : 'Pausar'}</Button></div>}</Resource>} />
     {error && <ErrorState message={error} retry={() => { setError(''); refresh() }} />}
-    <div className={styles.workbench}><Card className={styles.taskPane}><div className={styles.sectionTitle}><h2>Tareas</h2><Button secondary title="Actualizar tareas" aria-label="Actualizar tareas" onClick={tasks.retry} disabled={busy || tasks.loading}>↻</Button></div><Resource resource={tasks}>{data => <>
-      {!data.data.length ? <Empty title="Sin tareas" /> : <div className={styles.taskList}>{data.data.map(task => <button type="button" className={`${styles.taskItem} ${task.id === selectedTaskId ? styles.taskSelected : ''}`} key={task.id} disabled={busy || (!!active && active.task.id !== task.id)} onClick={() => void open(task)} aria-label={`Preparar ${task.title}`} aria-current={task.id === selectedTaskId ? 'true' : undefined}><strong>{task.title}</strong><span>{task.status} · {task.priority}</span></button>)}</div>}
+    <div className={styles.workbench}><Card className={styles.taskPane}><div className={styles.sectionTitle}><h2>Tareas</h2><Button secondary title="Actualizar tareas" aria-label="Actualizar tareas" onClick={tasks.retry} disabled={busy || tasks.loading || runs.loading}>↻</Button></div><Resource resource={tasks}>{data => <>
+      {!data.data.length ? <Empty title="Sin tareas" /> : <div className={styles.taskList}>{data.data.map(task => <button type="button" className={`${styles.taskItem} ${task.id === selectedTaskId ? styles.taskSelected : ''}`} key={task.id} disabled={busy || runs.loading || (!!active && active.task.id !== task.id)} onClick={() => void open(task)} aria-label={`Preparar ${task.title}`} aria-current={task.id === selectedTaskId ? 'true' : undefined}><strong>{task.title}</strong><span>{task.status} · {task.priority}</span></button>)}</div>}
       {(cursor || data.meta.hasMore) && <div className={styles.pagination}>{cursor && <Button secondary disabled={busy} onClick={() => setCursor(undefined)}>Primera página</Button>}{data.meta.hasMore && data.meta.nextCursor && <Button secondary disabled={busy} onClick={() => setCursor(data.meta.nextCursor!)}>Más tareas →</Button>}</div>}
     </>}</Resource>{active && <p className={styles.taskHint}><Link href={`/runs/${active.id}`}>Traspaso en curso →</Link></p>}</Card>
     <div className={styles.workArea}>{selected ? <RunDetail key={selected} id={selected} /> : <Card className={styles.workEmpty}>{opening ? <Loading /> : <Empty title="Seleccioná una tarea" />}</Card>}</div></div>

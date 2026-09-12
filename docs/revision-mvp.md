@@ -19,7 +19,7 @@ jurado ni acredita elegibilidad o participación en un período determinado.
 
 ## Comprobaciones de esta preparación
 
-- `pnpm verify`: lint, tipos, **37 tests** (16 detector, 21 core), evaluación del
+- `pnpm verify`: lint, tipos, **48 tests** (16 detector, 32 core), evaluación del
   banco existente de 20 trazas y compilación de Next.js + extensión.
 - El banco del detector existente mantiene precisión/recall/F1 1,000 y longitud
   correcta en 10/11 casos evaluables. No se creó ni amplió ese banco; no demuestra

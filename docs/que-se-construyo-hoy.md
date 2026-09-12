@@ -10,7 +10,7 @@ El commit `484ea12` contiene el detector, el contrato Zod de rutinas y documento
 arquitectura/plan. Las aplicaciones core/web/observer tenían solo README.
 
 - Detector: normalización, minería de subsecuencias contiguas, score y parámetros.
-- 15 tests del detector y banco de 20 trazas sintéticas.
+- 16 tests del detector y banco de 20 trazas sintéticas.
 - `packages/routine-schema`: contrato para el futuro ejecutor general.
 - Documentos y seis ADR; describían trabajo futuro, no integraciones realizadas.
 
@@ -39,7 +39,7 @@ planes no debe describirse como uso de los sponsors.
 
 ## Validación de esta revisión
 
-`pnpm verify` pasa: 29 tests (16 del detector y 13 del core/conector), lint, tipos,
+`pnpm verify` pasa: 48 tests (16 del detector y 32 del core/conector), lint, tipos,
 evaluación de 20 trazas y build. Ensayo HTTP con Ambiguous real: tres tareas DEMO,
 tres documentos creados y releídos, rechazo y tercera oferta. Sigue pendiente la
 prueba humana de la extensión instalada. Ver `docs/revision-mvp.md`.

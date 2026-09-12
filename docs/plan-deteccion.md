@@ -158,7 +158,7 @@ con nombre genérico —**la detección nunca se cae por falta de LLM**.
 
 `packages/detector/test/` con vitest, sin red y sin claves.
 
-**15 tests unitarios, 15 en verde** (`pnpm --filter @dejavu/detector test`):
+**16 tests unitarios, 16 en verde** (`pnpm --filter @dejavu/detector test`):
 
 | Caso | Espera | Estado |
 |---|---|---|
@@ -176,6 +176,7 @@ con nombre genérico —**la detección nunca se cae por falta de LLM**.
 | patrón anidado con soporte empatado | gana el maximal (1 candidato, len 6) | ✅ |
 | flujo de < 20 s a mano | 0 candidatos | ✅ |
 | 2000 eventos | < 50 ms (camino caliente) | ✅ |
+| colisión del hash | secuencias distintas no se cuentan como repetidas | ✅ |
 
 **Banco etiquetado, 20 trazas** (`pnpm eval:detector`) — 12 positivas y 8 negativas:
 
