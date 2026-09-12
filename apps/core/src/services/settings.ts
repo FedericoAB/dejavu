@@ -45,7 +45,7 @@ export class LocalRuntime implements SettingsManager {
   get token() { return this.currentToken }
   get(): SettingsState {
     return {
-      ambiguous: { configured: !!this.key, connected: !!this.context, identity: this.context ? { ...this.context.identity } : null, ...(this.connectionError ? { error: this.connectionError } : {}) },
+      ambiguous: { configured: !!this.key, connected: !!this.context && !this.connectionError, identity: this.context ? { ...this.context.identity } : null, ...(this.connectionError ? { error: this.connectionError } : {}) },
       core: { tokenConfigured: this.currentToken.length >= 24, minTokenLength: 24 },
     }
   }
@@ -81,11 +81,15 @@ export class LocalRuntime implements SettingsManager {
     }
     this.updating = true
     try {
-      const workspace = this.options.workspace(this.key)
+      let workspace: Workspace
       let identity: WorkspaceIdentity
-      try { identity = await workspace.identity() }
+      try {
+        workspace = this.options.workspace(this.key)
+        identity = await workspace.identity()
+      }
       catch {
-        throw new DomainError('PROVIDER_ERROR', 'No se pudo validar Ambiguous. Revisá los permisos y la conexión, o guardá una API key nueva.')
+        this.connectionError = 'No se pudo validar Ambiguous. Revisá los permisos y la conexión, o guardá una API key nueva.'
+        throw new DomainError('PROVIDER_ERROR', this.connectionError)
       }
       if (this.closed || this.workflow.hasActiveWork) throw new DomainError('CONFLICT', 'Hay una operación en curso. Terminála antes de cambiar la conexión.')
       const previous = this.context

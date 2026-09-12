@@ -99,6 +99,26 @@ describe('Configuración privada en caliente', () => {
     } finally { await server.close() }
   })
 
+  it('un check fallido refleja desconexión sin perder historial ni lock y otro exitoso la recupera', async () => {
+    const { runtime, makeWorkspace, directory, envPath, source } = fixture(keyA)
+    await runtime.initialize()
+    const run = await runtime.workflow.open(randomUUID(), randomUUID())
+    runtime.workflow.reject(run.id)
+    const previous = runtime.workflow
+    makeWorkspace.mockImplementationOnce(() => ({ ...previous.workspace, identity: async () => { throw new Error('Sin conexión') } }))
+    await expect(runtime.check()).rejects.toMatchObject({ code: 'PROVIDER_ERROR' })
+    expect(runtime.get().ambiguous).toMatchObject({ configured: true, connected: false, identity: { workspace_id: 'workspace-a' }, error: expect.any(String) })
+    expect(runtime.workflow).toBe(previous)
+    expect(runtime.workflow.get(run.id).status).toBe('rejected')
+    expect(existsSync(join(directory, 'state-workspace-a-agent-test.json.lock'))).toBe(true)
+    expect(readFileSync(envPath, 'utf8')).toBe(source)
+    const recovered = await runtime.check()
+    expect(recovered.ambiguous.connected).toBe(true)
+    expect(recovered.ambiguous.error).toBeUndefined()
+    expect(runtime.workflow.get(run.id).status).toBe('rejected')
+    expect(existsSync(join(directory, 'state-workspace-a-agent-test.json.lock'))).toBe(true)
+  })
+
   it('valida identidad por lectura, preserva variables/comentarios/multilínea y guarda .env con modo 0600', async () => {
     const { runtime, envPath, source, directory, makeWorkspace } = fixture()
     const result = await runtime.update({ ambiguousApiKey: keyA, coreToken: newToken })
@@ -124,6 +144,8 @@ describe('Configuración privada en caliente', () => {
     expect(readFileSync(envPath, 'utf8')).toBe(before)
     expect(runtime.token).toBe(token)
     expect(runtime.workflow).toBe(previous)
+    expect(runtime.get().ambiguous.connected).toBe(true)
+    expect(runtime.get().ambiguous.error).toBeUndefined()
     expect(notified).not.toHaveBeenCalled()
   })
 

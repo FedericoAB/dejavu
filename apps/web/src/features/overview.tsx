@@ -16,19 +16,20 @@ export function Overview({ runId }: { runId?: string }) {
   const [cursor, setCursor] = useState<string | undefined>()
   const tasks = useResource<Awaited<ReturnType<Workspace['tasks']>>>(`/tasks${cursor ? `?cursor=${cursor}` : ''}`)
   const [busy, setBusy] = useState(false), [error, setError] = useState('')
+  const [opening, setOpening] = useState(false)
   const pending = useRef<{ taskId: string; id: string } | undefined>(undefined), lock = useRef(false)
   const active = runs.data?.data.find(run => ['opened', 'waiting_approval', 'writing'].includes(run.status))
-  const selected = runId ?? active?.id
+  const selected = runId ?? (opening ? undefined : active?.id)
   const selectedTaskId = runs.data?.data.find(run => run.id === selected)?.task.id
   async function open(task: Task) {
     if (lock.current) return
-    if (active) { router.push(`/runs/${active.id}`); return }
-    lock.current = true; setBusy(true); setError('')
+    if (active) { if (selected !== active.id) router.push(`/runs/${active.id}`); return }
+    lock.current = true; setBusy(true); setOpening(true); setError('')
     try {
       if (pending.current?.taskId !== task.id) pending.current = { taskId: task.id, id: crypto.randomUUID() }
       const run = await request<Run>(token, '/runs', pending.current)
       pending.current = undefined; refresh(); router.push(`/runs/${run.id}`)
-    } catch (error) { setError(error instanceof Error ? error.message : 'No se pudo abrir la tarea.') }
+    } catch (error) { setOpening(false); setError(error instanceof Error ? error.message : 'No se pudo abrir la tarea.') }
     finally { lock.current = false; setBusy(false) }
   }
   async function pause() {

@@ -180,6 +180,13 @@ try {
   await expect(page.getByRole('heading', { name: 'Conexiones', exact: true })).toBeVisible()
   expect(errors).toEqual([])
   console.log('✓ MV3 con token nuevo y acceso a Configuración. Sin errores JS ni datos externos.')
+} catch (error) {
+  const page = context?.pages()[0]
+  if (page) {
+    await page.screenshot({ path: resolve('.local/browser-qa/failure.png'), fullPage: true }).catch(() => {})
+    console.error('UI al fallar:', await page.locator('body').innerText().catch(() => 'No disponible'))
+  }
+  throw error
 } finally {
   await context?.close()
   web?.kill('SIGTERM')
