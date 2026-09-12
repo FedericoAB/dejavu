@@ -4,14 +4,25 @@
   "packageManager": "pnpm@9.15.0",
   "scripts": {
     "setup": "node scripts/setup.mjs",
-    "dev": "pnpm --filter @dejavu/core dev",
+    "doctor": "node scripts/doctor.mjs",
+    "dev": "node scripts/dev.mjs",
+    "start": "node scripts/start.mjs",
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "lint": "eslint .",
     "typecheck": "pnpm -r typecheck",
     "eval:detector": "pnpm --filter @dejavu/detector eval",
     "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm eval:detector && pnpm build",
-    "verify:live": "pnpm --filter @dejavu/core exec tsx test/live.ts --write-demo"
+    "verify:live": "pnpm --filter @dejavu/core exec tsx test/live.ts --write-demo",
+    "test:browser": "pnpm --filter @dejavu/observer build && tsx scripts/test-browser.mts"
   },
-  "devDependencies": { "eslint": "^9.0.0", "@eslint/js": "^9.0.0", "typescript-eslint": "^8.0.0", "globals": "^16.0.0", "typescript": "^5.7.2" }
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@playwright/test": "1.58.2",
+    "eslint": "^9.0.0",
+    "globals": "^16.0.0",
+    "tsx": "4.23.13",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.0.0"
+  }
 }

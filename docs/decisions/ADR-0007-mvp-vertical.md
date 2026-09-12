@@ -36,3 +36,21 @@ Límites: contexto leído al abrir la tarea, sin detección de cambios concurren
 no hay edición libre del documento, observación del DOM general ni multiusuario.
 Los ejemplos de navegador son instrumentación real del panel, no reconocimiento
 universal de workflows. La extensión todavía debe ensayarse instalada en Chromium.
+
+## Ampliación operativa — frontend y levantamiento (2026-09-12)
+
+Se completa `apps/web` con Next.js App Router y SCSS: tareas, receta fija, historial,
+metrics y detalle de traspaso. La API ahora ofrece SSE autenticado para el estado
+global y cada corrida; esta adición reemplaza la afirmación anterior de que no hay
+SSE. Se conserva la UI propia, sin CopilotKit ni AG-UI. El dashboard también puede
+preparar traspasos: se instrumentan sus acciones con el mismo workflow y detector.
+
+La persistencia sigue siendo JSON privado. Un archivo de bloqueo exclusivo evita
+un segundo escritor compatible; no reemplaza una base distribuida ni protege contra
+procesos antiguos que ignoren ese bloqueo. `dev`/`start` coordinan core y frontend;
+`doctor` revisa requisitos sin escribir datos ni llamar al proveedor.
+
+Chrome instalado fue usado para pruebas automatizadas de frontend y carga de MV3
+con un proveedor en memoria. Esto resuelve la falta de comprobación del navegador
+anterior, pero no sustituye el ensayo humano en Ambiguous una vez unido el dataset.
+El dataset queda a cargo del compañero, sin generación ni importación automática.

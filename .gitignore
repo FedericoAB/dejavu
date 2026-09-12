@@ -19,3 +19,6 @@ coverage/
 *.private.md
 package-lock.json
 .local/
+*.tsbuildinfo
+playwright-report/
+test-results/

@@ -81,5 +81,7 @@ Si alguien propone "mandemos la traza al modelo y preguntemos", la respuesta est
 Estado actualizado: detector y contrato; MVP de traspasos en `apps/core` y
 extensión en `apps/observer`. Ver `docs/revision-mvp.md` para evidencia y pendientes.
 ADR-0007 recorta a una receta fija, API Ambiguous real y persistencia local; no se
-implementaron los sponsors ni el ejecutor general de los planes. Falta el ensayo
-humano de la extensión instalada y los entregables públicos del evento.
+implementaron los sponsors ni el ejecutor general de los planes. Frontend Next.js y SSE completados; arranque coordinado y único escritor. Chrome
+instalado validado con proveedor en memoria. Dataset a cargo del compañero, sin
+generación. Falta unir esos datos, ensayar el recorrido humano contra Ambiguous y
+los entregables públicos del evento.

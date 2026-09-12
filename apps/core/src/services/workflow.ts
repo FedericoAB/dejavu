@@ -1,11 +1,17 @@
-import { DETECTOR_CONFIG, detectRaw } from '@dejavu/detector'
+import { DETECTOR_CONFIG, detectRaw, median } from '@dejavu/detector'
 import { DomainError } from '../errors/index.js'
-import type { ObservedEvent, Run, Task, Workspace } from '../models/index.js'
+import type { Metrics, ObservedEvent, Pattern, Routine, Run, Task, Workspace } from '../models/index.js'
 import { StateRepository } from '../repositories/state.js'
 
 // Perfil explicito de la unica receta del MVP; no modifica el detector general.
 export const HANDOFF_CONFIG = { ...DETECTOR_CONFIG, minManualDurationMs: 5_000, scoreThreshold: 0.35, minLen: 3, maxLen: 3 }
 const KINDS = ['navigate', 'copy', 'doc.create'] as const
+const STEPS = [
+  { id: 'open', kind: 'navigate', title: 'Abrir la tarea de origen' },
+  { id: 'prepare', kind: 'copy', title: 'Copiar el contexto y revisar la vista previa' },
+  { id: 'create', kind: 'doc.create', title: 'Aprobar, crear y verificar el documento' },
+]
+export const HANDOFF_ID = 'task-handoff'
 const plain = (text: string) => text.replace(/[<>[\]_*`#\\]/g, '').slice(0, 12_000)
 export function compileHandoff(task: Task) {
   return {
@@ -16,8 +22,88 @@ export function compileHandoff(task: Task) {
 
 export class Workflow {
   private locks = new Set<string>()
+  private listeners = new Map<string, Set<(run: Run) => void>>()
   constructor(readonly repository: StateRepository, readonly workspace: Workspace, private now = () => Date.now()) {}
   get state() { return this.repository.state }
+  // Solo las vueltas manuales completas y verificadas son evidencia del detector.
+  private evidence() {
+    const verified = new Set(this.state.runs.filter(run => run.mode === 'manual' && run.status === 'succeeded').map(run => run.id))
+    return this.state.events.filter(event => verified.has(event.runId))
+  }
+  patterns(): Pattern[] {
+    const evidence = this.evidence()
+    return detectRaw(evidence, { config: HANDOFF_CONFIG, now: this.now() })
+      .filter(candidate => candidate.kinds.join(',') === KINDS.join(','))
+      .map(candidate => ({
+        id: HANDOFF_ID, name: 'Traspaso de tarea',
+        description: 'Abrir una tarea, copiar su contexto y crear un documento de traspaso.',
+        support: candidate.support, score: candidate.score, medianDurationMs: candidate.medianDurationMs,
+        detectedAt: candidate.occurrences[candidate.occurrences.length - 1].endedAt,
+        steps: STEPS.map(({ kind, title }) => ({ kind, title })),
+        occurrences: candidate.occurrences.map(occurrence => ({
+          runId: evidence[occurrence.start].runId, startedAt: occurrence.startedAt,
+          endedAt: occurrence.endedAt, durationMs: occurrence.durationMs,
+        })),
+      }))
+  }
+  routines(): Routine[] {
+    return [{
+      id: HANDOFF_ID, name: 'Traspaso de tarea',
+      description: 'Plantilla fija: conserva el contexto registrado de una tarea en un documento de Ambiguous, previa aprobación.',
+      source: 'fixed-template', requiresApproval: true, enabled: true,
+      estimatedManualMs: this.patterns()[0]?.medianDurationMs ?? null,
+      steps: STEPS.map(step => ({ ...step })),
+    }]
+  }
+  routine(id: string): Routine {
+    const routine = this.routines().find(item => item.id === id)
+    if (!routine) throw new DomainError('NOT_FOUND', 'No se encontró la rutina.')
+    return routine
+  }
+  metrics(): Metrics {
+    const runs = this.state.runs
+    const evidence = this.evidence()
+    const durations = runs.filter(run => run.mode === 'manual' && run.status === 'succeeded').flatMap(run => {
+      const events = evidence.filter(event => event.runId === run.id)
+      if (events.map(event => event.kind).join(',') !== KINDS.join(',')) return []
+      return [Date.parse(events[2].occurredAt) - Date.parse(events[0].occurredAt)]
+    })
+    // Estimación conservadora: mediana ofrecida menos tiempo total de la vuelta asistida.
+    // No inventa una base cuando falta evidencia, ni presenta la estimación como ahorro medido.
+    const savings = runs.filter(run => run.mode === 'assisted' && run.status === 'succeeded' && run.offer && run.verifiedAt)
+      .map(run => Math.max(0, run.offer!.medianDurationMs - (Date.parse(run.verifiedAt!) - Date.parse(run.openedAt))))
+    return {
+      observedEvents: this.state.events.length,
+      manualCompleted: runs.filter(run => run.mode === 'manual' && run.status === 'succeeded').length,
+      assistedCompleted: runs.filter(run => run.mode === 'assisted' && run.status === 'succeeded').length,
+      offered: runs.filter(run => run.offeredAt || run.offer).length,
+      approved: runs.filter(run => run.approvedAt || ['writing', 'created', 'succeeded', 'uncertain'].includes(run.status)).length,
+      rejected: runs.filter(run => run.status === 'rejected').length,
+      dismissed: runs.filter(run => run.dismissedAt).length,
+      activeRuns: runs.filter(run => ['opened', 'waiting_approval', 'writing', 'created', 'uncertain'].includes(run.status)).length,
+      medianManualDurationMs: durations.length ? median(durations) : null,
+      estimatedSavedMs: savings.length ? savings.reduce((total, value) => total + value, 0) : null,
+      paused: this.state.paused,
+    }
+  }
+  subscribe(id: string, listener: (run: Run) => void) {
+    this.get(id)
+    const listeners = this.listeners.get(id) ?? new Set<(run: Run) => void>()
+    listeners.add(listener)
+    this.listeners.set(id, listeners)
+    return () => {
+      listeners.delete(listener)
+      if (!listeners.size) this.listeners.delete(id)
+    }
+  }
+  private save(run: Run) {
+    run.revision = (run.revision ?? 0) + 1
+    this.repository.save()
+    for (const listener of this.listeners.get(run.id) ?? []) {
+      // Un cliente desconectado no puede interrumpir una escritura ya persistida.
+      try { listener(run) } catch { /* El controlador limpia la suscripción al cerrar. */ }
+    }
+  }
   get(id: string) {
     const run = this.state.runs.find(r => r.id === id)
     if (!run) throw new DomainError('NOT_FOUND', 'No se encontró la corrida.')
@@ -48,22 +134,24 @@ export class Workflow {
       }
       const task = await this.workspace.task(taskId)
       const candidate = !this.state.paused && this.state.dismissedUntil <= this.now()
-        ? detectRaw(this.state.events, { config: HANDOFF_CONFIG, now: this.now() })
-          .find(c => c.kinds.join(',') === KINDS.join(','))
+        ? this.patterns()[0]
         : undefined
       const run: Run = {
         id, task, mode: 'manual', status: 'opened', openedAt: new Date(this.now()).toISOString(),
-        ...(candidate ? { offer: { support: candidate.support, medianDurationMs: candidate.medianDurationMs } } : {}),
+        ...(candidate ? { offeredAt: new Date(this.now()).toISOString(), offer: { support: candidate.support, medianDurationMs: candidate.medianDurationMs } } : {}),
       }
       this.state.runs.push(run)
       this.event('navigate', run)
-      this.repository.save()
+      this.save(run)
       return run
     } finally { this.locks.delete('open') }
   }
   prepare(id: string, assisted: boolean, copied?: { title: string; description: string }) {
     const run = this.get(id)
-    if (run.status === 'waiting_approval') return run
+    if (run.status === 'waiting_approval') {
+      if (assisted !== (run.mode === 'assisted')) throw new DomainError('CONFLICT', 'La vista previa ya se preparó con otro modo.')
+      return run
+    }
     if (run.status !== 'opened') throw new DomainError('CONFLICT', 'La corrida ya no está abierta.')
     if (assisted && !run.offer) throw new DomainError('CONFLICT', 'No hay un patrón ofrecido para esta corrida.')
     if (!assisted && (copied?.title !== run.task.title || copied.description !== (run.task.description ?? ''))) {
@@ -76,16 +164,20 @@ export class Workflow {
     }
     run.draft = compileHandoff(run.task)
     run.status = 'waiting_approval'
+    run.preparedAt = new Date(this.now()).toISOString()
     this.event('copy', run)
-    this.repository.save()
+    this.save(run)
     return run
   }
   dismiss(id: string) {
     const run = this.get(id)
     if (run.status !== 'opened') throw new DomainError('CONFLICT', 'La oferta ya no está disponible.')
+    if (run.dismissedAt) return run
+    if (!run.offer) throw new DomainError('CONFLICT', 'No hay una oferta para silenciar.')
     delete run.offer
+    run.dismissedAt = new Date(this.now()).toISOString()
     this.state.dismissedUntil = this.now() + 86_400_000
-    this.repository.save()
+    this.save(run)
     return run
   }
   reject(id: string) {
@@ -93,9 +185,10 @@ export class Workflow {
     if (run.status === 'rejected') return run
     if (!['opened', 'waiting_approval'].includes(run.status)) throw new DomainError('CONFLICT', 'La escritura ya comenzó o terminó.')
     run.status = 'rejected'
+    run.rejectedAt = new Date(this.now()).toISOString()
     // Cortar la secuencia impide combinar mitades de vueltas canceladas.
     this.state.events = this.state.events.filter(e => e.runId !== run.id)
-    this.repository.save()
+    this.save(run)
     return run
   }
   async approve(id: string) {
@@ -103,17 +196,18 @@ export class Workflow {
     if (run.status === 'succeeded' || run.status === 'created') return run
     if (run.status !== 'waiting_approval' || !run.draft) throw new DomainError('CONFLICT', 'Esta corrida no espera aprobación. No se repetirá la escritura.')
     run.status = 'writing'
-    this.repository.save() // Antes de llamar al proveedor; nunca reenvia un POST incierto.
+    run.approvedAt = new Date(this.now()).toISOString()
+    this.save(run) // Antes de llamar al proveedor; nunca reenvia un POST incierto.
     try {
       const document = await this.workspace.createDocument(run.draft)
       run.documentId = document.id
       run.status = 'created'
-      this.repository.save()
+      this.save(run)
     } catch (error) {
       run.status = 'uncertain'
       const reason = error instanceof DomainError ? `${error.message} ` : ''
       run.error = `${reason}No se pudo confirmar la escritura. Revisá Docs en Ambiguous antes de hacer otra; esta corrida no reintentará el POST.`
-      this.repository.save()
+      this.save(run)
       return run
     }
     return this.verify(id)
@@ -130,11 +224,11 @@ export class Workflow {
       }
       if (run.status !== 'succeeded') this.event('doc.create', run)
       run.status = 'succeeded'
-      run.verifiedAt = new Date(this.now()).toISOString()
+      run.verifiedAt ??= new Date(this.now()).toISOString()
       delete run.error
     } catch {
       run.error = 'El documento fue creado, pero no se pudo verificar su contenido. Reintentá solo la lectura.'
-    } finally { this.locks.delete(id); this.repository.save() }
+    } finally { this.locks.delete(id); this.save(run) }
     return run
   }
   pause(paused: boolean) {

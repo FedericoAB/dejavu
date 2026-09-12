@@ -14,9 +14,50 @@ export type Run = {
   verifiedAt?: string
   error?: string
   offer?: { support: number; medianDurationMs: number }
+  revision?: number
+  preparedAt?: string
+  approvedAt?: string
+  offeredAt?: string
+  dismissedAt?: string
+  rejectedAt?: string
+}
+export type Page<T> = { data: T[]; meta: { offset: number; limit: number; total: number; hasMore: boolean } }
+export type Pattern = {
+  id: string
+  name: string
+  description: string
+  support: number
+  score: number
+  medianDurationMs: number
+  detectedAt: string
+  steps: { kind: string; title: string }[]
+  occurrences: { runId: string; startedAt: string; endedAt: string; durationMs: number }[]
+}
+export type Routine = {
+  id: string
+  name: string
+  description: string
+  source: 'fixed-template'
+  requiresApproval: true
+  enabled: true
+  estimatedManualMs: number | null
+  steps: { id: string; title: string; kind: string }[]
+}
+export type Metrics = {
+  observedEvents: number
+  manualCompleted: number
+  assistedCompleted: number
+  offered: number
+  approved: number
+  rejected: number
+  dismissed: number
+  activeRuns: number
+  medianManualDurationMs: number | null
+  estimatedSavedMs: number | null
+  paused: boolean
 }
 export type ObservedEvent = RawEvent & { runId: string }
-export type State = { version: 1; runs: Run[]; events: ObservedEvent[]; dismissedUntil: number; paused: boolean }
+export type State = { version: 1; revision?: number; runs: Run[]; events: ObservedEvent[]; dismissedUntil: number; paused: boolean }
 export interface Workspace {
   identity(): Promise<{ id: string; display_name: string; workspace_id: string; type: string }>
   tasks(cursor?: string): Promise<{ data: Task[]; meta: { nextCursor: string | null; hasMore: boolean } }>

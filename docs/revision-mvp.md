@@ -1,106 +1,72 @@
 # Revisión del mínimo viable — 2026-09-12
 
-## Veredicto de la revisión inicial
+## Estado vigente
 
-**Todavía no cumple el mínimo funcional.** El repositorio contiene un detector
-funcional y un contrato de rutinas; `apps/core`, `apps/web` y `apps/observer`
-contienen README, sin aplicaciones ejecutables. El algoritmo aislado no demuestra
-un agente integrado de punta a punta.
+El MVP definido por [ADR-0007](decisions/ADR-0007-mvp-vertical.md) tiene frontend,
+backend y extensión ejecutables. El arranque local reúne los procesos y preserva
+el historial. El dataset se entrega por separado: **no se generó, cargó ni importó**
+durante esta preparación.
 
-Esta es una evaluación técnica, no una calificación oficial ni un umbral de
-aprobación publicado por el evento. Apuntamos a evidencia equivalente a **3/5 en
-cada criterio**, antes de invertir en extras.
+| Criterio | Implementación y evidencia |
+|---|---|
+| Core Requirements & Functionality | Tarea → copia manual → detección → oferta → aprobación → documento → lectura. Frontend, extensión y API conectados. |
+| Innovation & Theme Alignment | Oferta contextual en la tercera vuelta, sin prompt. Detector puro; solo cuenta evidencia manual verificada. |
+| Technical Execution & Integration | API real Ambiguous, Zod, CORS exacto, token local, paginación, SSE, persistencia y un escritor. |
+| Usefulness & Agentic Experience | Vista previa exacta, rechazo sin escribir, resultado verificable, historial, métricas honestas y controles de pausa. |
 
-| Criterio | Evidencia inicial | Qué falta para un MVP defendible |
-|---|---|---|
-| Core Requirements & Functionality | Detector ejecutable; aplicaciones sin implementar | Contexto real → detección → oferta → aprobación → acción real → lectura del resultado |
-| Innovation & Theme Alignment | Propuesta contextual y proactiva bien definida | Mostrar dos vueltas observadas y oferta en la tercera, sin prompt |
-| Technical Execution & Integration | 15 tests pasan; typecheck pasa; contrato Zod | Integración real, validación, persistencia, rechazo y prevención de duplicados |
-| Usefulness & Agentic Experience | Usuario y problema descritos | Mostrar trabajo ahorrado, contenido a aprobar, resultado y opción de rechazar |
+Es una revisión técnica del alcance implementado; no es una puntuación oficial del
+jurado ni acredita elegibilidad o participación en un período determinado.
 
-## Lo que exige el starter kit
+## Comprobaciones de esta preparación
 
-El [overview oficial](https://github.com/CopilotKit/agents-everywhere-starter-kit/blob/main/hackathon-overview.md)
-admite una sola superficie y cualquier stack. Más sponsors o más superficies no
-son criterios de puntuación. Lo central es una interacción completa cuyo contexto
-aporte valor, con evidencia visible y control humano.
+- `pnpm verify`: lint, tipos, **37 tests** (16 detector, 21 core), evaluación del
+  banco existente de 20 trazas y compilación de Next.js + extensión.
+- El banco del detector existente mantiene precisión/recall/F1 1,000 y longitud
+  correcta en 10/11 casos evaluables. No se creó ni amplió ese banco; no demuestra
+  generalización ni productividad humana.
+- Frontend en **Chrome 153 instalado**: conexión autenticada, dos vueltas manuales,
+  oferta en la tercera sin prompt, rechazo sin escritura, asistencia, aprobación,
+  lectura y recarga, historial, rutina, métricas, vacío/error y recuperación.
+- Estado incierto sin botón para reenviar; pausa y reanudación siguen disponibles.
+- Vista móvil de 390 px sin desbordes y revisión visual de capturas de las pantallas.
+- La extensión MV3 se carga en un perfil temporal de Chrome y se comprueba su
+  comunicación panel → service worker → core usando el bearer.
+- Instalación con lockfile congelado y build en copia limpia sin `.env`,
+  `node_modules` ni datos: correctos.
+- Arranque de producción: frontend 3000 y core 8080 responden 200; conexión y
+  lectura real de tareas e historial en ambas interfaces. Content script y frame
+  cargados en el origen real de Ambiguous. Solo lecturas, sin documentos nuevos.
+- Diagnóstico de configuración y pruebas aisladas del arranque, señales, cierre SSE
+  y bloqueo del segundo escritor; sin imprimir secretos.
 
-Las [reglas](https://github.com/CopilotKit/agents-everywhere-starter-kit/blob/main/hackathon-rules.md)
-piden título, descripción, repositorio público, video de dos minutos y publicación
-social según las instrucciones del organizador. Hay que distinguir código heredado
-de trabajo del evento. **PENDIENTE:** confirmar ciudad, portal, plazo y período
-oficial; la fecha de git por sí sola no acredita elegibilidad.
+`pnpm test:browser` usa el core real con un `Workspace` temporal en memoria y un
+reloj controlado del workflow. **No llama a Ambiguous, no persiste tareas ni genera
+el dataset del compañero.** Sus capturas viven en `.local/browser-qa/`, fuera de Git.
+Acredita funcionamiento automatizado de la UI y la API; no un ensayo humano contra
+el proveedor ni ahorro de tiempo medido en usuarios.
 
-## Recorte propuesto
+## Evidencia real anterior, conservada
 
-Una rutina: **leer una tarea de Ambiguous → preparar un documento de traspaso →
-revisarlo y guardarlo en Ambiguous**. La superficie es una extensión del navegador,
-con acciones instrumentadas dentro de su panel en el workspace. No se promete
-observar cualquier interacción con el DOM de Ambiguous ni automatizar cualquier
-rutina arbitraria.
+La sesión anterior comprobó por HTTP la API de Ambiguous: rechazo, dos vueltas
+manuales, oferta en la tercera, tres documentos creados y releídos, incluida lectura
+tras reconstruir el servicio. Evidencia privada: `.local/live-verification.json`.
+Esos ensayos dejaron tres tareas y tres documentos DEMO en el workspace.
+No se repitieron ni se agregaron datos durante esta preparación.
 
-Dos vueltas manuales exitosas alimentan el detector; al abrir la tercera tarea
-aparece la oferta. Una plantilla fija compila el traspaso. La aprobación muestra
-el contenido exacto antes de escribir. El resultado solo cuenta como verificado
-cuando se vuelve a leer por su ID desde Ambiguous.
+La frase anterior “Chrome/Chromium no está instalado” quedó obsoleta: Chrome está
+instalado y ahora se usó para las pruebas. El frontend y SSE también reemplazan el
+estado anterior de `apps/web` vacío.
 
-Quedan fuera del primer corte: correo, Exa, Auth0/CIBA, CopilotKit, compilador LLM,
-Trigger.dev, dashboard, observación general y multiusuario. Son mejoras posteriores,
-no requisitos oficiales. No se atribuye uso a sponsors aún no integrados.
+## Pendiente después de recibir los datos
 
-## Comprobaciones iniciales
+1. El compañero carga sus tareas en el workspace acordado, según
+   [integracion-dataset.md](integracion-dataset.md).
+2. El equipo realiza el recorrido humano en Ambiguous con dos traspasos y la oferta
+   del tercero; las aprobaciones crean documentos reales revisados por el usuario.
+3. Grabar el video de hasta dos minutos y preparar los entregables públicos si se
+   decide presentar el proyecto. No se publicaron commits, video, post ni submission.
+4. Confirmar ciudad, portal, plazo y período oficial del evento con el organizador.
 
-- `pnpm typecheck`: pasa en los dos paquetes existentes.
-- `pnpm test`: 15 tests del detector pasan.
-- `pnpm eval:detector`: 20 trazas sintéticas, precisión/recall/F1 = 1,000 en este
-  banco; longitud correcta en 10/11 casos. No demuestra generalización ni el flujo real.
-- API real: `GET /api/users/me` y `GET /api/tasks?limit=3` responden 200.
-- El README inicial referencia `docs/demo.md`, `pnpm dev` y `db:migrate` sin
-  implementaciones suficientes para ejecutarlos.
-- `docs/que-se-construyo-hoy.md` y `docs/submission.md` atribuyen implementaciones
-  y sponsors que son planes; deben corregirse antes de presentar.
-- El detector general exige ≥20 segundos y score ≥0,50; una rutina de tres pasos
-  y dos vueltas puede no alcanzar el score. Cualquier perfil específico debe
-  documentarse y probarse sin inventar duraciones ni repeticiones.
-
-## Puerta de salida
-
-- [x] Instalación y build en copia limpia, sin node_modules ni credenciales; inicio real del core comprobado con .env local.
-- [ ] Dos repeticiones reales; tercera oferta sin prompt.
-- [x] Rechazo sin escritura y aprobación vinculada al contenido (HTTP/tests).
-- [x] Documento real creado y leído nuevamente al reconstruir el servicio.
-- [x] Doble clic/reintento de la misma corrida no duplica la escritura.
-- [x] Error de proveedor en el estado, sin éxito falso ni reintento ciego (HTTP/tests).
-- [ ] Demo visual en el navegador y video de ≤2 minutos.
-- [ ] Entregables públicos y elegibilidad confirmados por el equipo.
-
-## Resultado de la implementación y validación
-
-- API y extensión implementadas; quickstart y lockfile actualizados.
-- Aprobación controla el POST en el servidor y muestra el borrador antes de escribir.
-- Las vueltas manuales exigen copiar título y descripción; la oferta asistida los
-  toma de la tarea actual. No es un contador de clics con un resultado simulado.
-- Prueba real por HTTP: rechazo, dos vueltas manuales, oferta en la tercera,
-  tres documentos creados y leídos desde Ambiguous. Lectura de los tres después
-  de reconstruir el servicio desde disco. Evidencia privada: `.local/live-verification.json`.
-- El script usa tareas DEMO y pausas de ensayo; **no** acredita productividad humana
-  ni reemplaza la demo visual. Quedaron tres tareas y tres documentos en el workspace.
-- Corregida visibilidad de documentos: la API requiere `restricted`, no `private`.
-- Corregida minería: agrupación por secuencia exacta, con regresión para colisiones
-  del hash. No se afirma que la implementación sea un hash rodante.
-- **PENDIENTE:** Chrome/Chromium no está instalado en esta máquina; no se comprobó
-  la carga del content script ni el flujo humano de la extensión en su entorno.
-- No se publicaron commits, video, post ni submission. Confirmar elegibilidad local.
-
-Por tanto, hay implementación y evidencia de ejecución real del core, pero **todavía
-no corresponde declarar completa la preparación para el hackathon**. La última
-prueba funcional es el recorrido visual en la extensión; después quedan los
-entregables. No se garantiza una nota del jurado.
-
-### Última comprobación
-
-`pnpm verify`: lint, typecheck, **29 tests**, evaluación de 20 trazas y build pasan.
-Instalación `--frozen-lockfile`, `pnpm run setup` y build comprobados en una copia
-limpia. Usar **run setup**: `pnpm setup` es un comando propio del gestor, no el
-script del proyecto. Se verificó además el inicio del core, tareas paginadas y la
-lectura de los tres documentos desde el proceso reiniciado.
+El software queda preparado para ese levantamiento e integración. Sponsors de los
+planes ampliados, observación general, rutinas arbitrarias y multiusuario quedan
+fuera del MVP; no se atribuye uso de CopilotKit, Trigger.dev, Auth0, Exa ni Mozilla.ai.

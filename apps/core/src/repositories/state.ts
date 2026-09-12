@@ -5,6 +5,7 @@ import type { State } from '../models/index.js'
 // Excepcion del MVP: archivo privado y un solo proceso. Ver ADR-0007.
 export class StateRepository {
   readonly state: State
+  private listeners = new Set<() => void>()
   constructor(private path?: string) {
     this.state = path && existsSync(path)
       ? JSON.parse(readFileSync(path, 'utf8')) as State
@@ -21,9 +22,18 @@ export class StateRepository {
     this.save()
   }
   save() {
-    if (!this.path) return
-    mkdirSync(dirname(this.path), { recursive: true, mode: 0o700 })
-    writeFileSync(`${this.path}.tmp`, JSON.stringify(this.state), { mode: 0o600 })
-    renameSync(`${this.path}.tmp`, this.path)
+    this.state.revision = (this.state.revision ?? 0) + 1
+    if (this.path) {
+      mkdirSync(dirname(this.path), { recursive: true, mode: 0o700 })
+      writeFileSync(`${this.path}.tmp`, JSON.stringify(this.state), { mode: 0o600 })
+      renameSync(`${this.path}.tmp`, this.path)
+    }
+    for (const listener of this.listeners) {
+      try { listener() } catch { /* Una vista desconectada no invalida la persistencia. */ }
+    }
+  }
+  subscribe(listener: () => void) {
+    this.listeners.add(listener)
+    return () => { this.listeners.delete(listener) }
   }
 }
