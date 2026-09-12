@@ -15,7 +15,7 @@ de tareas y documentos; un workspace sin tareas es un estado válido.
 ```bash
 pnpm install --frozen-lockfile
 pnpm run setup
-# Completar la credencial de Ambiguous en .env.
+# El token local queda en .env; Ambiguous se conecta desde Configuración.
 pnpm run doctor
 pnpm verify
 pnpm start
@@ -26,8 +26,10 @@ pnpm start
 Ctrl+C espera las solicitudes pendientes y detiene ambos procesos. Ante un cierre
 forzado durante un POST, seguir [runbook](runbook.md); no repetir la escritura.
 
-Abrir el frontend en Chrome, conectar con el token local y comprobar que muestra el
-workspace correcto. Cargar `apps/observer/dist` como extensión descomprimida para usar
+Abrir el frontend en Chrome, conectar con el token local y guardar la clave de
+Ambiguous en Configuración. El core puede iniciar sin esa clave o con el proveedor
+desconectado; comprobar allí que muestra el workspace correcto. Cargar
+`apps/observer/dist` como extensión descomprimida para usar
 el panel dentro de Ambiguous. La comprobación inicial solo necesita lecturas y puede
 terminar mostrando “sin tareas” hasta recibir los datos del compañero.
 
@@ -35,7 +37,7 @@ terminar mostrando “sin tareas” hasta recibir los datos del compañero.
 
 | Recurso | Tratamiento |
 |---|---|
-| `.env` | Privado. Puede omitirse si el proceso recibe las variables requeridas. |
+| `.env` | Privado, permisos `0600`. La interfaz guarda aquí los cambios de credencial/token y los aplica al core. Puede omitirse inicialmente si el proceso recibe el token local. |
 | `DEJAVU_DATA_DIR` | Ruta estable y privada; por defecto `.local` en la raíz del repositorio. |
 | `state-*.json` | Historial e incertidumbres de escritura por workspace e identidad. Conservarlo. |
 | `state-*.json.lock` | Exclusión del escritor; contiene el PID. Se retira al cerrar normalmente. |
@@ -45,6 +47,13 @@ Para respaldar o mover el estado, primero detener la aplicación y copiar los ar
 JSON privados completos. No restaurar un historial viejo para repetir una corrida:
 el documento podría existir ya en el proveedor. Un archivo `*.lock` no forma parte
 del respaldo que se restaura. No guardar estos archivos en Git.
+
+La configuración guardada por la interfaz rige inmediatamente. Al reiniciar,
+credenciales inyectadas explícitamente por la terminal o un servicio prevalecen
+sobre `.env`; no mantener dos fuentes distintas si se administran desde la UI.
+Después de cambiar el token local, volver a conectar las interfaces con el nuevo
+valor. Guardar una clave Ambiguous comprueba identidad por lectura: no carga tareas
+ni crea documentos.
 
 ## Límite del despliegue
 

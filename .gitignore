@@ -11,6 +11,7 @@ coverage/
 .env
 .env.local
 .env.*.local
+.env.*.tmp
 *.pem
 
 # nunca: las notas personales viven fuera de este repo

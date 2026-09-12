@@ -8,4 +8,4 @@ if (!/^CORE_INGEST_TOKEN=.{24,}$/m.test(content)) {
 }
 writeFileSync(path, content, { mode: 0o600 })
 chmodSync(path, 0o600)
-console.log('.env preparado. Completá AMBIGUOUS_API_KEY y usá CORE_INGEST_TOKEN para conectar el frontend o la extensión.')
+console.log('.env preparado. Usá CORE_INGEST_TOKEN para abrir el frontend; después conectá Ambiguous desde Configuración. No hace falta cargar su clave para levantar la aplicación.')

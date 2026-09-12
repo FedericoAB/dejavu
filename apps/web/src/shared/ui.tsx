@@ -16,7 +16,7 @@ export function Textarea({ label, ...props }: TextareaHTMLAttributes<HTMLTextAre
 export function Badge({ children, tone = 'neutral' }: { children: ReactNode; tone?: 'neutral' | 'green' | 'amber' | 'red' }) {
   return <span className={`${styles.badge} ${styles[tone]}`}>{children}</span>
 }
-export function Loading() { return <div className={styles.loading} role="status" aria-live="polite"><p>Cargando tu workspace…</p><div /><div /><div /></div> }
+export function Loading() { return <div className={styles.loading} role="status" aria-live="polite"><p>Cargando…</p><div /><div /><div /></div> }
 export function Empty({ title, children }: { title: string; children?: ReactNode }) {
   return <div className={styles.empty}><span aria-hidden="true">↗</span><h3>{title}</h3>{children && <p>{children}</p>}</div>
 }

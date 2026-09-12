@@ -1,13 +1,21 @@
 export const API_URL = process.env.NEXT_PUBLIC_CORE_API_URL || 'http://127.0.0.1:8080'
 
+export function normalizeApiUrl(value: string) {
+  const url = new URL(value)
+  const local = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
+  if ((url.protocol !== 'https:' && !(url.protocol === 'http:' && local)) || url.username || url.password || url.search || url.hash || (url.pathname !== '/' && url.pathname !== '')) throw new Error('Usá una URL HTTPS o un core local, sin rutas ni credenciales.')
+  return url.origin
+}
+export function currentApiUrl() { return typeof window === 'undefined' ? API_URL : sessionStorage.getItem('dejavu.apiUrl') || API_URL }
+
 export class ApiError extends Error {
   constructor(message: string, readonly code: string, readonly requestId?: string) { super(message) }
 }
 
-export async function request<T>(token: string, path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
+export async function request<T>(token: string, path: string, body?: unknown, signal?: AbortSignal, base = currentApiUrl()): Promise<T> {
   let response: Response
   try {
-    response = await fetch(`${API_URL}/v1${path}`, {
+    response = await fetch(`${base}/v1${path}`, {
       method: body === undefined ? 'GET' : 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       cache: 'no-store', redirect: 'error', signal: signal ?? AbortSignal.timeout(65_000),
@@ -17,14 +25,15 @@ export async function request<T>(token: string, path: string, body?: unknown, si
     if (signal?.aborted) throw error
     throw new ApiError('No pudimos conectar con Déjà Vu. Comprobá que el core esté encendido y reintentá la lectura.', 'OFFLINE')
   }
-  const value = await response.json()
+  let value
+  try { value = await response.json() } catch { throw new ApiError('No se pudo leer la respuesta del core. Recuperá el estado antes de continuar.', 'OFFLINE') }
   if (!response.ok) throw new ApiError(value.error?.message ?? 'La operación no pudo completarse.', value.error?.code ?? 'ERROR', value.error?.requestId)
   return value as T
 }
 
 // fetch permite enviar el bearer sin exponerlo en la URL del stream.
 export async function stream(token: string, path: string, signal: AbortSignal, onEvent: (event: string, data: unknown) => void) {
-  const response = await fetch(`${API_URL}/v1${path}`, {
+  const response = await fetch(`${currentApiUrl()}/v1${path}`, {
     headers: { Authorization: `Bearer ${token}`, Accept: 'text/event-stream' }, signal, cache: 'no-store', redirect: 'error',
   })
   if (!response.ok || !response.body) throw new Error('Se interrumpió la conexión en vivo.')

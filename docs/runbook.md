@@ -4,16 +4,21 @@ Ejecutar `pnpm run doctor` con la aplicación detenida para revisar la configura
 No muestra claves, no contacta Ambiguous y no modifica tareas, documentos ni historial.
 Con la aplicación encendida, `http://127.0.0.1:8080/healthz` indica si el core escucha;
 la lectura de tareas en la interfaz comprueba el acceso actual al proveedor.
+Que doctor informe Ambiguous pendiente no impide levantar el frontend ni Configuración.
 
 | Síntoma | Acción |
 |---|---|
 | `pnpm` no aparece | Usar `corepack pnpm@9.15.0` y Node.js 22+. Mantener la versión explícita; no desactivar firmas. |
 | Falta compilación en `pnpm start` | Ejecutar `pnpm build` y volver a iniciar. |
-| Faltan variables | Ejecutar `pnpm run setup`, completar `AMBIGUOUS_API_KEY` y revisar que el token local tenga al menos 24 caracteres. No pegarlas en logs. |
-| El core no inicia | Revisar credencial, conexión a Ambiguous, permisos del directorio y puerto. El inicio solo comprueba identidad, no crea tareas/documentos. |
+| Falta token local | Ejecutar `pnpm run setup` y usar `CORE_INGEST_TOKEN` de `.env` para abrir Configuración. No pegarlo en logs. |
+| Falta clave Ambiguous | Levantar normalmente y guardarla en Configuración. No hace falta editar `.env` a mano ni generar datos. |
+| El core no inicia | Revisar token local, permisos del directorio y puerto. La ausencia de clave Ambiguous o una falla del proveedor no deben impedir abrir Configuración. |
 | Puerto ocupado | Detener la instancia existente. No cambiar de puerto para abrir un segundo escritor del mismo estado. |
 | Bloqueo de escritor existente | Seguir “Recuperar un bloqueo” abajo; nunca borrar el JSON de historial. |
-| El frontend no conecta | Revisar URL del core, token de sesión y `ALLOWED_ORIGINS`. Si cambió `CORE_API_URL`, reconstruir antes de `pnpm start`. |
+| El frontend no conecta | Revisar token local, URL del core en conexión avanzada y `ALLOWED_ORIGINS`. Si cambió el valor por defecto `CORE_API_URL`, reconstruir antes de `pnpm start`. |
+| Ambiguous no conecta | Revisar el error e identidad en Configuración. Corregir la clave y comprobar su acceso al workspace. El error no se presenta como una lista vacía. |
+| Cambié el token y perdí conexión | Es el comportamiento previsto: reconectar frontend y extensión con el token nuevo. Las conexiones existentes se invalidan. |
+| La credencial cambia al reiniciar | Revisar si la terminal o servicio inyecta una variable que prevalece sobre `.env`. Retirarla de ese entorno para usar el valor guardado por la interfaz. |
 | La extensión no conecta | Revisar core en puerto 8080, token configurado, recargar extensión compilada y pestaña de Ambiguous. |
 | Lista de tareas vacía | Es válido antes de la integración. El compañero debe cargar sus tareas en el mismo workspace; pulsar actualizar. No generar datos para ocultar el vacío. |
 | No aparece la tercera oferta | Confirmar dos traspasos manuales **verificados**, mediana ≥5 s, observación activa y oferta no silenciada. La receta reconoce solo traspasos. |

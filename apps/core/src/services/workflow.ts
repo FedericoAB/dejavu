@@ -25,6 +25,9 @@ export class Workflow {
   private listeners = new Map<string, Set<(run: Run) => void>>()
   constructor(readonly repository: StateRepository, readonly workspace: Workspace, private now = () => Date.now()) {}
   get state() { return this.repository.state }
+  get hasActiveWork() {
+    return this.locks.size > 0 || this.state.runs.some(run => ['opened', 'waiting_approval', 'writing'].includes(run.status))
+  }
   // Solo las vueltas manuales completas y verificadas son evidencia del detector.
   private evidence() {
     const verified = new Set(this.state.runs.filter(run => run.mode === 'manual' && run.status === 'succeeded').map(run => run.id))

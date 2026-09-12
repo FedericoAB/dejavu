@@ -9,8 +9,9 @@
    se puede abrir el panel desde el icono de la extensión.
 4. Pegar `CORE_INGEST_TOKEN` de `.env` en **Token del core local**. La clave de
    Ambiguous se configura exclusivamente en el servidor.
-5. **Abrir tablero ↗** lleva al dashboard local en `http://127.0.0.1:3000`.
-   El panel permite desconectarse y borrar el token guardado sin borrar el historial.
+5. **Tablero ↗** lleva al dashboard local en `http://127.0.0.1:3000`.
+   **Configuración ↗** abre los ajustes del dashboard. **Desconectar** borra el
+   token guardado en la extensión y conserva el historial.
 
 Si no está instalado pnpm, reemplazarlo por `npx --yes pnpm@9.15.0` en estos comandos.
 Después de reconstruir la extensión, pulsar **Recargar** en `chrome://extensions`
@@ -23,8 +24,7 @@ Las tareas se incorporan desde Ambiguous cuando el equipo las tenga disponibles.
 
 La sugerencia aparece después de la repetición detectada y prepara una vista previa
 que requiere aprobación antes de crear el documento. **Escape**, el cierre y los
-30 segundos de expiración ocultan la tarjeta solo en este panel; **No · silenciar
-por 24 h** guarda el rechazo en el core. El cierre conserva los campos manuales.
+30 segundos de expiración ocultan la tarjeta solo en este panel; **No** guarda el rechazo en el core. El cierre conserva los campos manuales.
 La tarjeta no toma el foco al aparecer y se puede recorrer y cerrar con el teclado.
 
 Ante una respuesta de escritura perdida, el panel consulta la corrida y exige

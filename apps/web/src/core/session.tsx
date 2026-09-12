@@ -4,10 +4,10 @@ import { request, stream } from './client'
 import type { Workspace } from './types'
 
 type Identity = Awaited<ReturnType<Workspace['identity']>>
-type Session = { token: string; identity: Identity; version: number; live: boolean; refresh: () => void; disconnect: () => void }
+type Session = { token: string; identity: Identity | null; version: number; live: boolean; refresh: () => void; disconnect: () => void; updateSession: (token: string, identity: Identity | null) => void }
 export const SessionContext = createContext<Session | null>(null)
 export function useSession() { const value = useContext(SessionContext); if (!value) throw new Error('Conectá el workspace primero.'); return value }
-export function SessionProvider({ token, identity, disconnect, children }: { token: string; identity: Identity; disconnect: () => void; children: ReactNode }) {
+export function SessionProvider({ token, identity, disconnect, updateSession, children }: { token: string; identity: Identity | null; disconnect: () => void; updateSession: (token: string, identity: Identity | null) => void; children: ReactNode }) {
   const [version, setVersion] = useState(0), [live, setLive] = useState(false)
   const refresh = useCallback(() => setVersion(value => value + 1), [])
   useEffect(() => {
@@ -21,7 +21,7 @@ export function SessionProvider({ token, identity, disconnect, children }: { tok
     connect()
     return () => { controller.abort(); clearTimeout(timer) }
   }, [token, refresh])
-  return <SessionContext.Provider value={{ token, identity, version, live, refresh, disconnect }}>{children}</SessionContext.Provider>
+  return <SessionContext.Provider value={{ token, identity, version, live, refresh, disconnect, updateSession }}>{children}</SessionContext.Provider>
 }
 
 export function useResource<T>(path: string) {

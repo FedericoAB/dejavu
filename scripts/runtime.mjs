@@ -10,6 +10,7 @@ export function configuration() {
   if (Number(process.versions.node.split('.')[0]) < 22) {
     throw new Error('Se requiere Node.js 22 o superior.')
   }
+  const injectedSecrets = new Set(['AMBIGUOUS_API_KEY', 'CORE_INGEST_TOKEN'].filter(key => Object.hasOwn(process.env, key)))
   try { process.loadEnvFile(join(root, '.env')) } catch (error) {
     if (error.code !== 'ENOENT') throw new Error('No se pudo leer .env. Revisá el formato y los permisos.')
   }
@@ -34,7 +35,13 @@ export function configuration() {
   process.env.WEB_PORT = String(webPort)
   process.env.CORE_API_URL ||= coreUrl
   process.env.ALLOWED_ORIGINS ||= [...new Set([webUrl, `http://127.0.0.1:${webPort}`, `http://localhost:${webPort}`])].join(',')
-  return { coreHost, corePort, webHost, webPort, coreUrl, webUrl }
+  const childEnv = { ...process.env }
+  // El core relee .env al reiniciar. No fijar en tsx watch los secretos antiguos
+  // que luego pueden cambiarse desde Configuración. Se respetan los del entorno externo.
+  for (const key of ['AMBIGUOUS_API_KEY', 'CORE_INGEST_TOKEN']) {
+    if (!injectedSecrets.has(key)) delete childEnv[key]
+  }
+  return { coreHost, corePort, webHost, webPort, coreUrl, webUrl, childEnv }
 }
 
 export function packageManager() {
@@ -76,9 +83,8 @@ async function availablePort(name, host, port) {
 
 export async function preflight({ production = false, checkPorts = true } = {}) {
   const config = configuration()
-  if (!process.env.AMBIGUOUS_API_KEY?.startsWith('ak_') || process.env.AMBIGUOUS_API_KEY === 'ak_xxx') {
-    throw new Error('Falta AMBIGUOUS_API_KEY válida. Completá .env o la variable de entorno del proceso.')
-  }
+  // La pantalla de configuración debe poder abrirse antes de conectar el proveedor.
+  const providerKeyPresent = Boolean(process.env.AMBIGUOUS_API_KEY?.startsWith('ak_') && process.env.AMBIGUOUS_API_KEY !== 'ak_xxx')
   if ((process.env.CORE_INGEST_TOKEN?.length ?? 0) < 24) {
     throw new Error('CORE_INGEST_TOKEN debe tener al menos 24 caracteres. Ejecutá pnpm run setup o configurá el entorno.')
   }
@@ -93,5 +99,5 @@ export async function preflight({ production = false, checkPorts = true } = {}) 
     availablePort('Core', config.coreHost, config.corePort),
     availablePort('Web', config.webHost, config.webPort),
   ])
-  return { ...config, manager }
+  return { ...config, manager, providerKeyPresent }
 }

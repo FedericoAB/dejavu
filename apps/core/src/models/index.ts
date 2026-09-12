@@ -3,6 +3,19 @@ import type { RawEvent } from '@dejavu/detector'
 export type Task = { id: string; title: string; description: string | null; status: string; priority: string; due_date?: string | null }
 export type Document = { id: string; title: string; content: string | null }
 export type Draft = { title: string; content: string }
+export type WorkspaceIdentity = { id: string; display_name: string; workspace_id: string; type: string }
+export type SettingsState = {
+  ambiguous: { configured: boolean; connected: boolean; identity: WorkspaceIdentity | null; error?: string }
+  core: { tokenConfigured: boolean; minTokenLength: 24 }
+}
+export type SettingsUpdate = { ambiguousApiKey?: string; coreToken?: string }
+export type SettingsUpdateResult = { settings: SettingsState; tokenChanged: boolean; workspaceChanged: boolean }
+export interface SettingsManager {
+  get(): SettingsState
+  check(): Promise<SettingsState>
+  update(input: SettingsUpdate): Promise<SettingsUpdateResult>
+  subscribe(listener: () => void): () => void
+}
 export type Run = {
   id: string
   task: Task
@@ -59,7 +72,7 @@ export type Metrics = {
 export type ObservedEvent = RawEvent & { runId: string }
 export type State = { version: 1; revision?: number; runs: Run[]; events: ObservedEvent[]; dismissedUntil: number; paused: boolean }
 export interface Workspace {
-  identity(): Promise<{ id: string; display_name: string; workspace_id: string; type: string }>
+  identity(): Promise<WorkspaceIdentity>
   tasks(cursor?: string): Promise<{ data: Task[]; meta: { nextCursor: string | null; hasMore: boolean } }>
   task(id: string): Promise<Task>
   createDocument(draft: Draft): Promise<Document>

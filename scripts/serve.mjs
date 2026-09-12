@@ -43,7 +43,7 @@ export async function serve(production) {
   const start = (name, folder, args) => {
     const child = spawn(config.manager.command, [...config.manager.prefix, '--dir', join(root, folder), 'exec', ...args], {
       cwd: root,
-      env: { ...process.env, ...(production ? { NODE_ENV: 'production' } : {}) },
+      env: { ...config.childEnv, ...(production ? { NODE_ENV: 'production' } : {}) },
       stdio: 'inherit',
       detached: process.platform !== 'win32',
     })
