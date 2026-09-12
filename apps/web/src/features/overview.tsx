@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { request } from '../core/client'
 import { useResource, useSession } from '../core/session'
 import type { Metrics, Page, Run, Task, Workspace } from '../core/types'
-import { Badge, Button, Card, Empty, ErrorState } from '../shared/ui'
+import { Badge, Button, Card, Empty, ErrorState, Loading } from '../shared/ui'
 import { Heading, Resource } from './common'
 import { RunDetail } from './run-detail'
 import styles from './workspace.module.scss'
@@ -14,11 +14,12 @@ export function Overview({ runId }: { runId?: string }) {
   const { token, refresh } = useSession(), router = useRouter()
   const metrics = useResource<Metrics>('/metrics'), runs = useResource<Page<Run>>('/runs?limit=20')
   const [cursor, setCursor] = useState<string | undefined>()
-  const tasks = useResource<Awaited<ReturnType<Workspace['tasks']>>>(`/tasks${cursor ? `?cursor=${cursor}` : ''}`)
+  const tasks = useResource<Awaited<ReturnType<Workspace['tasks']>>>(`/tasks${cursor ? `?cursor=${cursor}` : ''}`, false)
   const [busy, setBusy] = useState(false), [error, setError] = useState('')
   const [opening, setOpening] = useState(false)
   const pending = useRef<{ taskId: string; id: string } | undefined>(undefined), lock = useRef(false)
   const active = runs.data?.data.find(run => ['opened', 'waiting_approval', 'writing'].includes(run.status))
+  // Montar el editor una sola vez, después de navegar, conserva lo que se escribe.
   const selected = runId ?? (opening ? undefined : active?.id)
   const selectedTaskId = runs.data?.data.find(run => run.id === selected)?.task.id
   async function open(task: Task) {
@@ -45,6 +46,6 @@ export function Overview({ runId }: { runId?: string }) {
       {!data.data.length ? <Empty title="Sin tareas" /> : <div className={styles.taskList}>{data.data.map(task => <button type="button" className={`${styles.taskItem} ${task.id === selectedTaskId ? styles.taskSelected : ''}`} key={task.id} disabled={busy || (!!active && active.task.id !== task.id)} onClick={() => void open(task)} aria-label={`Preparar ${task.title}`} aria-current={task.id === selectedTaskId ? 'true' : undefined}><strong>{task.title}</strong><span>{task.status} · {task.priority}</span></button>)}</div>}
       {(cursor || data.meta.hasMore) && <div className={styles.pagination}>{cursor && <Button secondary disabled={busy} onClick={() => setCursor(undefined)}>Primera página</Button>}{data.meta.hasMore && data.meta.nextCursor && <Button secondary disabled={busy} onClick={() => setCursor(data.meta.nextCursor!)}>Más tareas →</Button>}</div>}
     </>}</Resource>{active && <p className={styles.taskHint}><Link href={`/runs/${active.id}`}>Traspaso en curso →</Link></p>}</Card>
-    <div className={styles.workArea}>{selected ? <RunDetail key={selected} id={selected} /> : <Card className={styles.workEmpty}><Empty title="Seleccioná una tarea" /></Card>}</div></div>
+    <div className={styles.workArea}>{selected ? <RunDetail key={selected} id={selected} /> : <Card className={styles.workEmpty}>{opening ? <Loading /> : <Empty title="Seleccioná una tarea" />}</Card>}</div></div>
   </>
 }

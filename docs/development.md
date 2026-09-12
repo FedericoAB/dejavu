@@ -75,7 +75,8 @@ puertos u orígenes, mantener `CORE_API_URL`, la configuración de la extensión
 La pantalla Configuración reúne la clave Ambiguous, su estado e identidad y el cambio
 de token local. Guardar la clave valida la identidad con una lectura al proveedor y
 la aplica sin reiniciar. Guardar un nuevo token local invalida las conexiones
-existentes: reconectar el frontend y la extensión con ese token. El endpoint
+existentes: la pestaña que guarda actualiza su sesión; reconectar las demás pestañas
+y la extensión con ese token. El endpoint
 autenticado `GET /v1/settings` está disponible antes de conectar Ambiguous.
 
 No se requieren claves de modelos, Exa, Trigger.dev, Auth0 ni una base de datos.
@@ -110,10 +111,10 @@ cierres abruptos, resultados inciertos y recuperación sin duplicar escrituras.
 
 Con el core y el frontend detenidos, ejecutar `pnpm test:browser`. Requiere Chrome
 instalado y puertos 8080/3100 libres; usa un perfil de navegador temporal, frontend
-Next.js y core en memoria. No llama al proveedor ni crea el dataset. Respeta el
+Next.js y core con persistencia temporal aislada. No llama al proveedor ni crea el dataset. Respeta el
 límite HTTP de 180 solicitudes/minuto; el ensayo puede esperar al cambio de ventana.
 Las capturas quedan en `.local/browser-qa`. Al terminar cierra sus procesos y elimina
-el perfil temporal. El frontend normal se abre luego con `pnpm dev` o `pnpm start`.
+el perfil y los archivos temporales. El frontend normal se abre luego con `pnpm dev` o `pnpm start`.
 
 La carga automatizada de MV3 usa el comando del [protocolo de Chrome](https://chromedevtools.github.io/devtools-protocol/tot/Extensions/#method-loadUnpacked)
 desde una sesión de navegador de prueba. No cambia las extensiones del perfil personal.

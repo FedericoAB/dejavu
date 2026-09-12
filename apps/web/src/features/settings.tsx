@@ -59,7 +59,7 @@ export function Settings() {
     try {
       const state = await request<SettingsState>(token, '/settings/check', {})
       updateSession(token, state.ambiguous.identity); refresh(); settings.retry(); setNotice('Conexión verificada.')
-    } catch (error) { setError(error instanceof Error ? error.message : 'No se pudo conectar.') }
+    } catch (error) { setError(error instanceof Error ? error.message : 'No se pudo conectar.'); settings.retry() }
     finally { lock.current = false; setBusy(false) }
   }
   async function copyToken() {

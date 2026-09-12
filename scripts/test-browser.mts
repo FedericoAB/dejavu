@@ -16,9 +16,9 @@ const tasks: Task[] = ['Revisar la propuesta', 'Coordinar el lanzamiento', 'Prep
   id: randomUUID(), title, description: `Contexto de prueba de «${title}».`, status: 'Pendiente', priority: 'Media',
 }))
 const identity = { id: randomUUID(), workspace_id: randomUUID(), display_name: 'Workspace de prueba', type: 'agent' }
-let taskReadsFail = false, returnNoTasks = false, uncertainWrite = false, writes = 0
+let identityReadsFail = false, taskReadsFail = false, returnNoTasks = false, uncertainWrite = false, writes = 0
 const workspace: Workspace = {
-  async identity() { return identity },
+  async identity() { if (identityReadsFail) throw new Error('Proveedor de prueba desconectado'); return identity },
   async tasks() { if (taskReadsFail) throw new Error('Proveedor de prueba desconectado'); return { data: returnNoTasks ? [] : tasks, meta: { hasMore: false, nextCursor: null } } },
   async task(id) { const task = tasks.find(task => task.id === id); if (!task) throw new Error('Tarea inexistente'); return task },
   async createDocument(draft: Draft) { writes++; if (uncertainWrite) throw new Error('Respuesta perdida'); const document = { id: randomUUID(), ...draft }; documents.set(document.id, document); return document },
@@ -73,6 +73,14 @@ try {
   expect(snapshot).not.toContain('ak_browser_fixture_valid'); expect(snapshot).not.toContain(token)
   await page.screenshot({ path: resolve(shots, 'configuracion.png'), fullPage: true })
   console.log('✓ Configuración sin proveedor, rechazo de clave inválida, guardado privado y GET sin secretos.')
+  identityReadsFail = true
+  expect((await fetch('http://127.0.0.1:8080/v1/settings/check', { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: '{}' })).status).toBe(502)
+  await page.reload()
+  await expect(page.getByText('Pendiente', { exact: true })).toBeVisible()
+  identityReadsFail = false
+  await page.getByRole('button', { name: 'Reintentar conexión', exact: true }).click()
+  await expect(page.getByRole('status')).toContainText('Conexión verificada')
+  console.log('✓ Estado de conexión fallida y reconexión con la clave guardada.')
   await page.getByRole('link', { name: 'Traspasos', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Tareas', exact: true })).toBeVisible()
   await expect(page.getByText('En línea', { exact: true })).toBeVisible()
@@ -157,13 +165,27 @@ try {
   await page.getByRole('button', { name: 'Guardar cambios', exact: true }).click()
   await expect(page.getByRole('status')).toContainText('Actualizá el token')
   expect((await fetch('http://127.0.0.1:8080/v1/settings', { headers: { Authorization: `Bearer ${previousToken}` } })).status).toBe(401)
+  // Perder la respuesta tras guardar no debe dejar la sesión atada al token revocado.
+  await page.route('**/v1/settings', async route => {
+    if (route.request().method() !== 'POST') return route.continue()
+    await route.fetch()
+    await route.abort('failed')
+  })
+  await page.getByRole('button', { name: 'Generar token', exact: true }).click()
+  token = await page.getByLabel('Nuevo token del core', { exact: true }).inputValue()
+  await page.getByRole('button', { name: 'Guardar cambios', exact: true }).click()
+  await expect(page.getByRole('button', { name: 'Reintentar lectura', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Copiar token actual', exact: true })).toBeDisabled()
+  await page.unroute('**/v1/settings')
+  await page.getByRole('button', { name: 'Reintentar lectura', exact: true }).click()
+  await expect(page.getByRole('status')).toContainText('Conexión recuperada')
   await page.reload()
   await expect(page.getByRole('heading', { name: 'Configuración', exact: true })).toBeVisible()
   await expect(page.getByLabel('API key de Ambiguous', { exact: true })).toHaveValue('')
   await page.setViewportSize({ width: 390, height: 844 })
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   await page.screenshot({ path: resolve(shots, 'configuracion-movil.png'), fullPage: true })
-  console.log('✓ Rotación de token, revocación del anterior y sesión recuperada tras recarga.')
+  console.log('✓ Rotación de token, revocación del anterior, respuesta perdida y recuperación tras recarga.')
   const cdp = await context.browser()!.newBrowserCDPSession()
   const { id: extensionId } = await cdp.send('Extensions.loadUnpacked', { path: resolve('apps/observer/dist') })
   const panel = await context.newPage()

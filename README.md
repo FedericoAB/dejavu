@@ -7,8 +7,8 @@ para confirmar el resultado.
 
 ## Qué está implementado
 
-- **Frontend Next.js:** tareas, observación, rutina, historial, métricas y detalle del
-  traspaso con seguimiento SSE. Estados de carga, vacío, error y datos; diseño móvil.
+- **Frontend Next.js:** tareas y editor en una pantalla; rutinas, historial y métricas
+  separados. Configuración de API key, token y URL del core; seguimiento SSE y diseño móvil.
 - **Extensión Chrome MV3:** panel dentro de Ambiguous, oferta no bloqueante,
   aprobación, rechazo, historial y acceso al tablero.
 - **Core Express:** API validada, detector determinista, receta fija, conector real
@@ -28,7 +28,7 @@ Requisitos: **Node.js 22+, pnpm 9.15.0 y Chrome**. Desde la raíz del repositori
 ```bash
 pnpm install --frozen-lockfile
 pnpm run setup
-# Completar AMBIGUOUS_API_KEY en .env; setup genera CORE_INGEST_TOKEN.
+# setup genera CORE_INGEST_TOKEN; la API key se puede completar desde la UI.
 pnpm run doctor
 pnpm verify
 pnpm dev
@@ -38,8 +38,11 @@ Si pnpm no está instalado, reemplazar `pnpm` por `npx --yes pnpm@9.15.0`.
 Usar **run setup** y **run doctor**: pnpm también tiene comandos propios con esos nombres.
 
 Abrir **http://127.0.0.1:3000** y conectar con `CORE_INGEST_TOKEN` de `.env`.
-El core escucha en `127.0.0.1:8080`; su inicio comprueba la identidad de Ambiguous.
-La credencial del proveedor queda en el servidor. Ctrl+C cierra ambos procesos.
+En **Configuración**, guardar la API key de Ambiguous. Desde esa pantalla también se
+puede generar o cambiar el token y ajustar la URL del core. Las credenciales se
+validan y guardan en el servidor local; los cambios se aplican sin reiniciar.
+El core escucha en `127.0.0.1:8080` y arranca aunque falte la clave del proveedor.
+Ctrl+C cierra ambos procesos.
 Para un ensayo con la compilación de producción: `pnpm build` y `pnpm start`.
 
 No se necesita Docker, Postgres ni claves de modelos. `AMBIGUOUS_API_KEY` necesita
@@ -67,14 +70,15 @@ Pausar borra la secuencia observada para no unir acciones a ambos lados de la pa
 ## Validación
 
 ```bash
-pnpm verify         # lint, tipos, 37 tests, banco existente del detector y build
+pnpm verify         # lint, tipos, tests, banco existente del detector y build
 pnpm test:browser   # Chrome instalado, puertos 8080/3100 libres; detener pnpm dev/start
 ```
 
-La prueba de navegador levanta un core **en memoria** con dobles de prueba y un
-frontend aislado. Comprueba detección, aprobación, rechazo, resultado incierto,
-recarga, SSE, estados vacíos/error y móvil; no carga `.env` en el core de pruebas,
-no persiste tareas y no llama a Ambiguous. Capturas privadas en `.local/browser-qa`.
+La prueba de navegador levanta un core con dobles de prueba y un frontend aislado.
+Comprueba configuración, rotación de token, detección, aprobación, rechazo,
+resultado incierto, recarga, SSE, estados vacíos/error y móvil. Usa un directorio
+temporal que elimina al terminar, no carga el `.env` real ni llama a Ambiguous.
+Capturas privadas en `.local/browser-qa`.
 No representa mediciones humanas de productividad. La
 [revisión del MVP](docs/revision-mvp.md) distingue la evidencia automatizada del
 ensayo real posterior a la entrega de datos.
