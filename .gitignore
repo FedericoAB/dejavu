@@ -1,0 +1,20 @@
+node_modules/
+dist/
+build/
+.next/
+.turbo/
+coverage/
+*.log
+.DS_Store
+
+# secretos
+.env
+.env.local
+.env.*.local
+*.pem
+
+# nunca: las notas personales viven fuera de este repo
+/notas/
+/knowledge/
+*.private.md
+package-lock.json

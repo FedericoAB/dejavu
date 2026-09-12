@@ -1,0 +1,15 @@
+{
+  "name": "dejavu",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "eval:detector": "pnpm --filter @dejavu/detector eval",
+    "db:migrate": "pnpm --filter @dejavu/core db:migrate",
+    "seed:demo": "pnpm --filter @dejavu/core seed:demo"
+  }
+}
